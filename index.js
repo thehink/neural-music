@@ -95,12 +95,13 @@ function checkHighest(event){
 }
 
 function generateSong(iterations){
-  var standalone = LSTM.standalone();
-
-  var events = [ standalone(trainingStartData) ];
-  for(var i = 0; i < 1000; ++i){
-    var result = standalone(events[i]);
-    events.push(result);
+  var events = [];
+  LSTM.clear();
+  var lastEvent = LSTM.activate(trainingStartData);
+  for(var i = 0; i < 500; ++i){
+    var newEvent = LSTM.activate(lastEvent);
+    events.push(newEvent);
+    lastEvent = newEvent;
   }
 
   generateSongFromNotes(iterations, events);
@@ -150,14 +151,13 @@ function OnReadFile(filename, content){
      notes[i].time -= deltaTime;
      deltaTime += notes[i].time;
    }
-
+/*
   trainingSet.push({
     input: trainingStartData,
     output: NormalizeEvent(notes[0]),
-  });
+  });*/
 
   for(let i = 0; i < notes.length - 1; ++i){
-    UnNormalizeEvent(NormalizeEvent(notes[i]));
     trainingSet.push({
       input: NormalizeEvent(notes[i]),
       output: NormalizeEvent(notes[i + 1])
@@ -173,9 +173,37 @@ function OnReadFilesDones(){
   console.log('read all files');
   console.log(highest);
 
+  var iterations = 0;
+  var index = 0;
+  var learningRate = 0.1;
+
+  var result = trainingSet[0].input;
+  var notes = [];
+
+  while(iterations++ < 60000){
+
+    for (var j, x, i = trainingSet.length; i; j = Math.floor(Math.random() * i), x = trainingSet[--i], trainingSet[i] = trainingSet[j], trainingSet[j] = x);
+
+    for(let i = 0; i < trainingSet.length; ++i){
+      var data = trainingSet[i];
+      LSTM.activate(data.input);
+      LSTM.propagate(learningRate, data.output);
+    }
+
+    if(iterations % 100 == 0){
+      console.log('iterations', iterations);
+
+      result = LSTM.activate(result);
+      notes.push(result);
+
+    }
+  }
+
+  generateSongFromNotes("music", notes);
+/*
   let results = LSTM.trainer.train(trainingSet, {
     rate: .1,
-  	iterations: 200000000,
+  	iterations: 20,
   	error: .0005,
   	shuffle: true,
   	log: 100,
@@ -204,7 +232,7 @@ function OnReadFilesDones(){
     			return true; // abort/stop training
     	}
     }
-  });
+  });*/
 }
 
 readFiles('./training_data/', OnReadFile, OnReadFilesDones, console.log);
