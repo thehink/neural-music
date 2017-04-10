@@ -8,15 +8,49 @@ const {
 
 const fs = require("fs");
 const MidiConvert = require('MidiConvert');
-const BitArray = require('node-bitarray')
+const BitArray = require('node-bitarray');
+const _ = require('lodash');
 
-function toArrayBuffer(buf) {
-    var ab = new ArrayBuffer(buf.length);
-    var view = new Uint8Array(ab);
-    for (var i = 0; i < buf.length; ++i) {
-        view[i] = buf[i];
-    }
-    return ab;
+function BitField32(nSize) {
+    var nNumbers = Math.ceil(nSize/32) | 0;
+    this.values = new Uint32Array(nNumbers);
+}
+
+BitField32.prototype.get = function(i) {
+    var index = (i / 32) | 0;
+    var bit = i % 32;
+    return (this.values[index] & (1 << bit)) !== 0;
+};
+
+BitField32.prototype.set = function(i) {
+    var index = (i / 32) | 0;
+    var bit = i % 32;
+    this.values[index] |= 1 << bit;
+};
+
+BitField32.prototype.unset = function(i) {
+    var index = (i / 32) | 0;
+    var bit = i % 32;
+    this.values[index] &= ~(1 << bit);
+};
+
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
 }
 
 function readFiles(dirname, onFileContent, onReadAll, onError) {
@@ -45,25 +79,29 @@ function readFiles(dirname, onFileContent, onReadAll, onError) {
   });
 }
 
-const trainSetLength = 3 + 8;
+const trainSetLength = 3 + 64;
 const trainingStartData = [...Array(trainSetLength)].map(()=>0);
 const trainingSet = [];
 
 function UnNormalizeEvent(arr){
+  let probs = arr.slice(3, trainSetLength);
+  let maxMod = 1 / Math.max.apply( Math, probs );
+  probs = probs.map(x => Math.round(x * maxMod));
+
   return {
     time: arr[0] * 10,
-    duration: arr[1] * 50,
+    duration: arr[1] * 10,
     velocity: arr[2] * 1,
-    midi: BitArray.toNumber(arr.slice(3, 11).map(Math.round))
+    midiBits: probs
   }
 }
 
 function NormalizeEvent(event){
   return [
     event.time / 10, //type
-    event.duration / 50, //subtype
+    event.duration / 10, //subtype
     event.velocity / 1, //channel
-    ...event.midiBits
+    ...event.midiBits.__bits
   ];
 }
 
@@ -72,6 +110,11 @@ var highest = {
 
 function checkHighest(event){
   for(var key in event){
+
+    if(typeof event[key] == "object"){
+      continue;
+    }
+
     if(!highest[key + '_max']){
       highest[key + '_max'] = 0;
       highest[key + '_min'] = event[key];
@@ -101,13 +144,19 @@ function generateSong(iterations){
 
 function generateSongFromNotes(name, notes, normalize){
   let midi = MidiConvert.create();
-  let track = midi.track();
+  let track = midi.track().patch(6);
 
   timeOffset = 0;
   for(let i = 0; i < notes.length; ++i){
     let note = normalize ? notes[i] : UnNormalizeEvent(notes[i]);
+
     timeOffset += note.time;
-    track.note(note.midi, timeOffset, note.duration, note.velocity);
+
+    for(let j = 0; j < note.midiBits.length; ++j){
+      if(note.midiBits[j] == 1){
+        track.note(unNormalizeNote(j), timeOffset, note.duration, note.velocity);
+      }
+    }
   }
 
   fs.writeFileSync(`./generated_data/test_${name}.mid`, midi.encode(), 'binary');
@@ -118,59 +167,92 @@ const LSTM = new Architect.LSTM(trainSetLength, 3, trainSetLength);
 let lastIter = trainingStartData;
 let noteItems = [];
 
+let startNote = 36;
+let normalizeNote = n => n - startNote;
+let unNormalizeNote = n => n + startNote;
+
 function OnReadFile(filename, content){
   let midiConvert = MidiConvert.parse(content.toString('binary'), {});
-  //let notes = [];
-  let tracks = [];
-  for(let i = 0; i < midiConvert.tracks.length; ++i){
-    var notes = [];
 
+  midiConvert.bpm = 120;
+
+  let PPQ = midiConvert.header.PPQ;
+
+  const ticksPerSecond = midiConvert.header.PPQ / (60 / midiConvert.header.bpm);
+  const ticksPerSecond2 = 480 / (60 / 120);
+  const delta = ticksPerSecond / ticksPerSecond2;
+
+  //console.log(ticksPerSecond, ticksPerSecond2, ticksPerSecond / ticksPerSecond2);
+
+  //let notes = [];
+  var notes = [];
+  for(let i = 0; i < midiConvert.tracks.length; ++i){
     var track = midiConvert.tracks[i];
     if(track.notes && track.notes.length > 0){
 
       for(let j = 0; j < track.notes.length; j++){
+        if(track.notes[j].midi < startNote){
+          continue;
+        }
 
-        track.notes[j].midiBits = BitArray.octet(BitArray.fromNumber(track.notes[j].midi).__bits);
+        //track.notes[j].time *= delta;
+        //track.notes[j].duration *= delta;
+
+        track.notes[j].midiBits = new BitArray().fill(64);
+        track.notes[j].midiBits.set(normalizeNote(track.notes[j].midi), 1);
 
         notes.push(track.notes[j]);
 
         //notes.push(track.notes[j]);
       }
-
-      tracks.push(notes);
     }
   }
 
-  for(let j = 0; j < tracks.length; j++){
-    var notes = tracks[j];
+  notes.sort((a, b) => {
+    return Math.sign(a.time - b.time);
+  });
 
-    var trainingData = [];
+  const noteSequence = [];
 
-    notes.sort((a, b) => {
-      return Math.sign(a.time - b.time);
+  let lastNote;
+  for(let i = 0; i < notes.length; ++i){
+    let note = notes[i];
+
+    if(lastNote && lastNote.time == note.time){
+      lastNote.midiBits.set(normalizeNote(note.midi), 1);
+      continue;
+    }
+
+    lastNote = note;
+
+    noteSequence.push(note);
+  }
+
+  let deltaTime = noteSequence[0].time;
+  for(let i = 0; i < noteSequence.length; ++i){
+    let note = noteSequence[i];
+    if(note.time - deltaTime > 10){
+      console.log('warn time delta too high', note.time - deltaTime, note.name, note.time);
+    }
+
+    note.time -= deltaTime;
+    deltaTime += note.time;
+
+    checkHighest(note);
+  }
+
+  let trainingData = [];
+
+  for(let i = 0; i < noteSequence.length - 1; ++i){
+    trainingSet.push({
+      input: NormalizeEvent(noteSequence[i]),
+      output: NormalizeEvent(noteSequence[i + 1])
     });
-
-    let deltaTime = notes[0].time;
-
-    for(let i = 0; i < notes.length; ++i){
-       notes[i].time -= deltaTime;
-       deltaTime += notes[i].time;
-     }
-
-    for(let i = 0; i < notes.length - 1; ++i){
-      trainingData.push({
-        input: NormalizeEvent(notes[i]),
-        output: NormalizeEvent(notes[i + 1])
-      });
-      checkHighest(notes[i]);
-    }
-
-    trainingSet.push(trainingData);
   }
 
-  //console.log(trainingSet);
+  //generateSongFromNotes(`music_testtest`, trainingData.map(d => d.input));
 
-  //generateSongFromNotes("test", notes, true);
+  //trainingSet.push(trainingData);
 }
 
 function OnReadFilesDones(){
@@ -179,45 +261,40 @@ function OnReadFilesDones(){
 
   let iterations = 0;
   let index = 0;
-  let learningRate = 0.1;
+  let learningRate = 0.01;
 
-  let result = trainingSet[0][0].input;
+  let result = trainingSet[0].input;
   let notes = [];
 
   let trackIndex = 0;
+  let prevError = 0;
 
-  while(true){
+  console.log('start training...', trainingSet.length);
+  LSTM.trainer.train(trainingSet, {
+    rate: learningRate,
+    iterations: 99999999,
+    error: .05,
+    shuffle: true,
+    log: 100,
+    cost: Trainer.cost.CROSS_ENTROPY,
+    schedule: {
+      every: 1, // repeat this task every 500 iterations
+      do: function(data) {
 
+        console.log("error", data.error, "iterations", data.iterations, "rate", data.rate, 'diff', data.error - prevError);
+        prevError = data.error;
 
-    for(let i = 0; i < trainingSet.length; ++i){
-      var trackData = trainingSet[i];
-      LSTM.trainer.train(trackData, {
-        rate: .1,
-        iterations: 10,
-        error: .0005,
-        shuffle: true,
-        log: 100,
-        cost: Trainer.cost.MSE,
-        schedule: {
-          every: 9, // repeat this task every 500 iterations
-          do: function(data) {
-            console.log("error", data.error, "iterations", data.iterations, "rate", data.rate, iterations);
-          }
+        result = LSTM.activate(result);
+        notes.push(result);
+
+        if(data.iterations % 50 == 0){
+          console.log('generating music', data.iterations);
+          generateSongFromNotes(`music_${data.iterations}`, notes);
+          notes = [];
         }
-      });
-
-      result = LSTM.activate(result);
-      notes.push(result);
-
-      iterations++;
-      if(iterations % 500 == 0){
-        console.log('generating music', iterations);
-        generateSongFromNotes(`music_${iterations}`, notes);
-        notes = [];
       }
-
     }
-  }
+  });
 
   return;
 

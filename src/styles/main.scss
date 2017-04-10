@@ -1,0 +1,51 @@
+main{
+  position: relative;
+  overflow: hidden;
+}
+
+.thingy_line{
+  position: absolute;
+  width: 1px;
+  background: #FFF;
+  top: 0;
+  left: calc(50% + 20px);
+  bottom: 0;
+  z-index: 4;
+}
+
+
+.notes{
+
+}
+
+.note{
+  position: relative;
+  display: flex;
+
+  .name{
+    width: 40px;
+    background: #00314f;
+    font-size: 15px;
+    text-align: center;
+    padding: 1px 10px;
+    border-top: 1px solid #003b63;
+    border-bottom: 1px solid #002b47;
+  }
+
+  .line{
+    display: flex;
+    position: relative;
+    width: 100%;
+    height: 1px;
+    background: rgba(0,0,0,.4);
+
+  }
+
+  .thing{
+    position: relative;
+    height: 22px;
+    background: #005b99;
+    border: 1px solid #00223a;
+    z-index: 2;
+  }
+}
