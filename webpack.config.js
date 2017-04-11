@@ -16,7 +16,7 @@ process.env.NODE_ENV = env;
 
 let port = 3000;
 
-const sourcePath = path.join(__dirname, './src');
+const sourcePath = path.join(__dirname, './src/client');
 const staticsPath = path.join(__dirname, './public/assets');
 
 const plugins = [

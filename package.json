@@ -39,6 +39,7 @@
     "minimist": "^1.2.0",
     "node-sass": "^4.5.2",
     "nodemon": "^1.11.0",
+    "npm-run-all": "^4.0.2",
     "sass-loader": "^6.0.3",
     "style-loader": "^0.16.1",
     "tape": "^4.6.3",
