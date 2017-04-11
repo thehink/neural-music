@@ -18,6 +18,21 @@ module.exports = {
     path: path.join(__dirname, 'build'),
     filename: 'server.js'
   },
+  module: {
+    rules: [
+      {
+        test: /\.(js)$/,
+        exclude: /node_modules/,
+        use: [
+          'babel-loader'
+        ],
+      },
+      {
+        test: /\.(txt|proto)(\?v=\d+\.\d+\.\d+)?$/,
+        use: ['raw-loader']
+      }
+    ]
+  },
   externals: nodeModules,
   plugins: [
     new webpack.IgnorePlugin(/\.(css|less)$/),

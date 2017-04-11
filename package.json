@@ -22,7 +22,9 @@
     "midifile": "^1.0.4",
     "node-bitarray": "^0.1.0",
     "normalize.css": "^6.0.0",
+    "protobufjs": "^6.7.3",
     "synaptic": "^1.0.10",
+    "tone": "^0.10.0",
     "whatwg-fetch": "^2.0.3"
   },
   "devDependencies": {
@@ -36,10 +38,13 @@
     "dependency-sync": "^2.0.23",
     "extract-text-webpack-plugin": "^2.1.0",
     "faucet": "^0.0.1",
+    "file-loader": "^0.11.1",
     "minimist": "^1.2.0",
     "node-sass": "^4.5.2",
     "nodemon": "^1.11.0",
     "npm-run-all": "^4.0.2",
+    "proto-loader": "^0.2.0",
+    "raw-loader": "^0.5.1",
     "sass-loader": "^6.0.3",
     "style-loader": "^0.16.1",
     "tape": "^4.6.3",
