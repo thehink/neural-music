@@ -1,11 +1,14 @@
 {
   "name": "neural-music",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "build/server.js",
   "scripts": {
-    "start": "node server.js --env=development --progress --colors --inline",
+    "start": "npm-run-all --parallel watch:* nodemon",
     "test": "tape ./tests/*.js | faucet",
-    "dist": "webpack --env=production --progress --colors"
+    "dist": "webpack --env=production --progress --colors",
+    "nodemon": "nodemon",
+    "watch:dist": "node server.js --env=development --progress --colors --inline",
+    "watch:serve": "webpack --config webpack.config.server.js --watch"
   },
   "repository": "asd",
   "author": "Thehink <benja280@gmail.com>",
@@ -13,6 +16,7 @@
   "dependencies": {
     "@pioug/MidiConvert": "^3.0.0-beta.9",
     "dotenv": "^4.0.0",
+    "express": "^4.15.2",
     "lodash": "^4.17.4",
     "midiconvert": "https://github.com/Tonejs/MidiConvert.git",
     "midifile": "^1.0.4",
