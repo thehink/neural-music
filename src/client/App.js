@@ -19,7 +19,7 @@ export default class App{
 
     this.noteBoard = new NoteBoard(noteBoardEl);
 
-    this.loadSongTest();
+    //this.loadSongTest();
   }
 
   playMelody(notes){

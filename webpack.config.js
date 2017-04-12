@@ -35,7 +35,7 @@ const config = {
   context: sourcePath,
   entry: {
     app: './index.js',
-    vendor: ['whatwg-fetch']
+    vendor: ['whatwg-fetch', 'tone', 'protobufjs']
   },
   output: {
     path: staticsPath,

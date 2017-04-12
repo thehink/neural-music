@@ -9,7 +9,8 @@ message Note {
 }
 
 message Sample {
-  float perplexity = 1;
-  float epoch = 2;
-  repeated Note notes = 3;
+  string id = 1;
+  float perplexity = 2;
+  float epoch = 3;
+  repeated Note notes = 4;
 }
