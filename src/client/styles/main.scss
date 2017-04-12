@@ -23,13 +23,14 @@ main{
   display: flex;
 
   .name{
-    width: 40px;
+    width: 55px;
     background: #00314f;
     font-size: 15px;
-    text-align: center;
+    text-align: left;
     padding: 1px 10px;
     border-top: 1px solid #003b63;
     border-bottom: 1px solid #002b47;
+    z-index: 3;
   }
 
   .line{
@@ -42,10 +43,14 @@ main{
   }
 
   .thing{
-    position: relative;
+    position: absolute;
     height: 21px;
     background: #005b99;
     border: 1px solid #00223a;
     z-index: 2;
+
+    &.active{
+      background: #000;
+    }
   }
 }
