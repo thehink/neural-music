@@ -4,11 +4,11 @@ package nm;
 
 message Note {
   uint32 pitch = 1;
-  uint32 duration = 2;
-  uint32 delta = 3;
+  float duration = 2;
+  float delta = 3;
 }
 
-message Notes {
+message Sample {
   float perplexity = 1;
   float epoch = 2;
   repeated Note notes = 3;

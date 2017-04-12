@@ -21,6 +21,14 @@ browserSync({
                 }
             }),
             webpackHotMiddleware(bundler),
+            httpProxyMiddleware([
+              '/api',
+            ],
+            {
+              target: 'http://localhost:4000',
+              ws: true,
+              changeOrigin: true
+            }),
             connectHistoryApiFallback({
               index: './',
             })

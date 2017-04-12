@@ -4,7 +4,7 @@ const PITCH_OFFSET = 12;
 const BPM = 120;
 const PPQ = 8;
 
-function midiToPitch(midi){
+export const midiToPitch = (midi) => {
 	const scaleIndexToNote = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 	const octave = Math.floor(midi / 12) - 1;
 	const note = midi % 12;
@@ -37,7 +37,7 @@ export default (text, precision) => {
           name: midiToPitch(note),
           pitch: note,
           time: ticksToTime(timestep - activePitches[note] + 1),
-          duration: ticksToTime(activePitches[note])
+          duration: ticksToTime(activePitches[note] + 1)
         });
         if(activePitches[note] > 1){
           //console.log(ticksToTime(activePitches[note]));
@@ -50,7 +50,13 @@ export default (text, precision) => {
     prevNotes = notes;
   }
 
-  console.log(sample[3]);
+  sample.sort((a, b) => Math.sign(a.time - b.time));
+
+  let lastTime = 0;
+  for(let i = 0; i < sample.length; ++i){
+    sample[i].delta = sample[i].time - lastTime;
+    lastTime = sample[i].time;
+  }
 
   return sample;
 };
