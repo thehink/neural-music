@@ -1,6 +1,9 @@
 main{
-  position: relative;
-  overflow: hidden;
+  position: absolute;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .thingy_line{
@@ -15,12 +18,15 @@ main{
 
 
 .notes{
-
+  height: 100%;
+  overflow: hidden;
+  background: rgba(0,0,0,.4);
 }
 
 .note{
   position: relative;
   display: flex;
+  height: 2%;
 
   .name{
     width: 55px;
@@ -37,14 +43,14 @@ main{
     display: flex;
     position: relative;
     width: 100%;
-    height: 1px;
-    background: rgba(0,0,0,.4);
+    height: 100%;
+
 
   }
 
   .thing{
     position: absolute;
-    height: 21px;
+    height: 100%;
     background: #005b99;
     border: 1px solid #00223a;
     z-index: 2;

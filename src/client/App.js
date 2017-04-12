@@ -22,7 +22,7 @@ export default class App{
       var message = SamplesMessage.decode(new Uint8Array(buf));
       this.player.addNotes(message.notes);
 
-      setTimeout(() => this.player.play(), 1000);
+      this.player.play();
     }).catch(err => {
       // Error :(
       console.log(err);

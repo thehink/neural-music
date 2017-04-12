@@ -7,7 +7,8 @@ export default class NoteBoard{
     this.el = el;
     this.lines = [];
     this.notes = [];
-    this.timeWidth = 3; //100% of screen is 5 seconds
+    this.timePixel = 100;
+    this.timeWidth = 10; //100% of screen is 5 seconds
     this.time = 0;
 
     this.numDiffNotes = 50;
@@ -51,8 +52,8 @@ export default class NoteBoard{
       note.el.classList.add('active');
     }
 
-    note.el.style.left = `${ 100 * (note.time - this.time) / this.timeWidth }%`;
-    note.el.style.width = `${ 100 * note.duration / this.timeWidth }%`;
+    note.el.style.left = `${  (note.time - this.time) * this.timePixel }px`;
+    note.el.style.width = `${ this.timePixel * note.duration }px`;
   }
 
   updateNotes(time){
@@ -77,7 +78,7 @@ export default class NoteBoard{
 
     let noteNameEl = document.createElement('div');
     noteNameEl.className = 'name';
-    noteNameEl.innerText = midiToPitch(pitch);
+    //noteNameEl.innerText = midiToPitch(pitch);
 
     let noteLineEl = document.createElement('div');
     noteLineEl.className = 'line';
@@ -86,7 +87,7 @@ export default class NoteBoard{
       //noteLineEl.appendChild(this.renderThing(Math.random() * i * 100, Math.random() * 10));
     }
 
-    noteEl.appendChild(noteNameEl);
+    //noteEl.appendChild(noteNameEl);
     noteEl.appendChild(noteLineEl);
 
     return noteEl;

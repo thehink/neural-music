@@ -7,10 +7,21 @@ import NoteBoard from './NoteBoard';
 export default class Player{
   constructor(){
     Tone.Transport.bpm.value = 120;
-    this.synth = new Tone.PolySynth(8, Tone.Synth).toMaster();
-    this.synth.set("volume", -6);
+    this.synth = new Tone.PolySynth(8, Tone.SimpleSynth).set({
+			"volume" : -10,
+			"oscillator" : {
+				"type" : "sine6"
+			},
+			"envelope" : {
+				"attack" :  0.015,
+				"decay" :  0.25,
+				"sustain" :  0.08,
+				"release" :  0.5,
+			},
+		}).toMaster();
+    this.synth.stealVoices = true;
 
-    this.time = 2;
+    this.time = 1;
 
     let noteBoardEl = document.querySelector('#note_board');
     this.noteBoard = new NoteBoard(noteBoardEl);
