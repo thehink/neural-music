@@ -10,9 +10,6 @@ export default class App{
   constructor(){
     this.player = new Player();
     this.loadSongTest();
-
-    console.log('asd');
-
     document.getElementById('logo').addEventListener('click', this.player.togglePause)
   }
 
