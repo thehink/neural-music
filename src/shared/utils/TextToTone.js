@@ -11,8 +11,12 @@ export const midiToPitch = (midi) => {
 	return scaleIndexToNote[note] + octave;
 }
 
-function ticksToTime(ticks){
+export const ticksToTime = (ticks) => {
   return (60 / BPM) * (ticks / PPQ);
+}
+
+export const timeToTicks = (seconds) => {
+  return  ticks = PPQ * seconds / (60 / BPM);
 }
 
 export default (text, precision) => {

@@ -6,9 +6,10 @@ import NoteBoard from './NoteBoard';
 
 export default class Player{
   constructor(){
+    this.context = Tone.context;
     Tone.Transport.bpm.value = 120;
     this.synth = new Tone.PolySynth(8, Tone.SimpleSynth).set({
-			"volume" : -10,
+			"volume" : -8,
 			"oscillator" : {
 				"type" : "sine6"
 			},
@@ -17,19 +18,25 @@ export default class Player{
 				"decay" :  0.25,
 				"sustain" :  0.08,
 				"release" :  0.5,
-			},
+			}
 		}).toMaster();
     this.synth.stealVoices = true;
 
-    this.time = 1;
+    this.time = 0.1;
+
+    this.iteration = 0;
 
     let noteBoardEl = document.querySelector('#note_board');
     this.noteBoard = new NoteBoard(noteBoardEl);
+
+    this.togglePause = this.togglePause.bind(this);
+
+    this.update();
   }
 
   update(){
-    if(Math.round(100 * Tone.Transport.seconds) % 50 == 0){
-      //console.log('state', Tone.Transport.state, 'seconds', Tone.Transport.seconds, 'ticks', Tone.Transport.ticks, 'latency', Tone.Transport);
+    if(this.iteration++ % 100 === 0){
+      //console.log(Tone.Transport.state + ' | ' + Tone.Transport.seconds);
     }
 
     this.noteBoard.updateNotes(Tone.Transport.seconds);
@@ -37,15 +44,14 @@ export default class Player{
   }
 
   play(){
-    Tone.Transport.start();
-    this.update();
+    Tone.Transport.start(Tone.Transport.now() + 0.3);
   }
 
   togglePause(){
     if(Tone.Transport.state === 'started'){
-      Tone.Transport.pause();
+      this.pause();
     }else{
-      Tone.Transport.start();
+      this.play();
     }
   }
 
@@ -65,9 +71,9 @@ export default class Player{
       this.noteBoard.addNote(note);
     }
 
-    new Tone.Part((time, note) => {
+    let asfasf = new Tone.Part((time, note) => {
       //use the events to play the synth
-      this.synth.triggerAttackRelease(midiToPitch(note.pitch), note.duration, time, note.velocity)
+      this.synth.triggerAttackRelease(midiToPitch(note.pitch), note.duration, time, 0.5)
 
     }, notes).start();
 

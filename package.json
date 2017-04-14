@@ -23,6 +23,7 @@
     "node-bitarray": "^0.1.0",
     "normalize.css": "^6.0.0",
     "protobufjs": "^6.7.3",
+    "startaudiocontext": "^1.2.0",
     "synaptic": "^1.0.10",
     "tone": "^0.10.0",
     "whatwg-fetch": "^2.0.3"

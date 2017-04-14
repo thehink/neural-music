@@ -11,10 +11,18 @@ export default class NoteBoard{
     this.timeWidth = 10; //100% of screen is 5 seconds
     this.time = 0;
 
+    this.playerWidth = document.getElementById('note_board').clientWidth / 2;
+
     this.numDiffNotes = 50;
     this.maxPitch = 88;
 
+    window.addEventListener("resize", this.resize.bind(this));
+
     this.render();
+  }
+
+  resize(){
+    this.playerWidth = document.getElementById('note_board').clientWidth / 2;
   }
 
   render(){
@@ -48,11 +56,15 @@ export default class NoteBoard{
 
   updateNote(note){
 
-    if(note.time <= this.time){
+    if(note.time <= this.time && note.time + note.duration >= this.time){
       note.el.classList.add('active');
+    }else{
+      note.el.classList.remove('active');
     }
 
-    note.el.style.left = `${  (note.time - this.time) * this.timePixel }px`;
+    let width = this.playerWidth;
+
+    note.el.style.left = `${ width + (note.time - this.time) * this.timePixel }px`;
     note.el.style.width = `${ this.timePixel * note.duration }px`;
   }
 
@@ -61,7 +73,7 @@ export default class NoteBoard{
 
     for(let i = this.notes.length - 1; i > -1; i--){
       let note = this.notes[i];
-      if(note.time + note.duration + 1 < this.time){
+      if(note.time + note.duration + 10 < this.time){
         //remove note from screen
         note.el.remove();
         this.notes.splice(i, 1);
@@ -74,7 +86,8 @@ export default class NoteBoard{
 
   renderNote(pitch){
     let noteEl = document.createElement('div');
-    noteEl.className = 'note';
+    let name = midiToPitch(pitch).replace('#', 's');
+    noteEl.className = 'note ' + name.slice(0, name.length - 1);
 
     let noteNameEl = document.createElement('div');
     noteNameEl.className = 'name';
@@ -82,10 +95,6 @@ export default class NoteBoard{
 
     let noteLineEl = document.createElement('div');
     noteLineEl.className = 'line';
-
-    for(let i = 1; i < 4; ++i){
-      //noteLineEl.appendChild(this.renderThing(Math.random() * i * 100, Math.random() * 10));
-    }
 
     //noteEl.appendChild(noteNameEl);
     noteEl.appendChild(noteLineEl);

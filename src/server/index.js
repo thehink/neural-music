@@ -1,3 +1,4 @@
+import cluster from 'cluster';
 import fs from 'fs';
 import express from 'express';
 import MidiConvert from 'MidiConvert';
@@ -8,45 +9,62 @@ import marioText from '../shared/midi_mario.txt';
 import protobuf from 'protobufjs';
 import proto from '../shared/protos/notes.proto';
 
-let app = express();
+import Trainer from './Trainer';
 
-let root = protobuf.parse(proto);
+if (cluster.isMaster) {
+  let app = express();
 
-// respond with "hello world" when a GET request is made to the homepage
-app.get('/', function (req, res) {
-  let notes = TextToTone(marioText);
-  res.json(notes);
-});
+  let root = protobuf.parse(proto);
 
-app.get('/api/proto', function (req, res) {
-  let notes = TextToTone(marioText);
+  let currentBatch = {};
 
-  let payload = {
-    perplexity: 0.4,
-    epoch: 1,
-    notes: notes
-  };
+  // respond with "hello world" when a GET request is made to the homepage
+  app.get('/', function (req, res) {
+    let notes = TextToTone(marioText);
+    res.json(notes);
+  });
 
+  app.get('/api/proto', function (req, res) {
+    let notes = TextToTone(marioText);
 
-  // res.writeHead(200, {
-  //     'Content-Type': mimetype,
-  //     'Content-Length': data.length
-  // });
-  // res.end(new Buffer(data, 'binary'));
+    let payload = {
+      perplexity: 0.4,
+      epoch: 1,
+      id: '',
+      notes: notes
+    };
 
-  var SamplesMessage = root.root.lookupType("nm.Sample");
-  var message = SamplesMessage.fromObject(payload);
-  var buffer = SamplesMessage.encode(message).finish();
+    var SamplesMessage = root.root.lookupType("nm.Sample");
+    var message = SamplesMessage.fromObject(payload);
+    var buffer = SamplesMessage.encode(message).finish();
 
-  res.set('Content-Type', 'application/protobuf');
-  res.header("Content-Length", buffer.length);
+    res.set('Content-Type', 'application/protobuf');
+    res.header("Content-Length", buffer.length);
 
-  res.end(buffer);
-});
+    res.end(buffer);
+  });
 
-app.listen(4000, function () {
-  console.log('Web server listening on port 4000');
-});
+  app.listen(4000, function () {
+    console.log('Web server listening on port 4000');
+  });
+
+  cluster.fork();
+
+  for (const id in cluster.workers) {
+    cluster.workers[id].on('message', batch => {
+      currentBatch = batch;
+    });
+  }
+}else{
+  let trainer = new Trainer({
+    batch_size: 10,
+  });
+  console.log('worker');
+  trainer.train(batch => {
+    process.send({ batch });
+  });
+}
+
 
 // let midi = MidiConvert.create();
 // let track = midi.track().patch(2);

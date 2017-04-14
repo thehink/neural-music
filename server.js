@@ -9,6 +9,12 @@ const httpProxyMiddleware = require('http-proxy-middleware');
 const bundler = webpack(webpackConfig);
 
 browserSync({
+    ui: {
+      port: 3001,
+      weinre: {
+          port: 8082
+      }
+    },
     server: {
         baseDir: 'public',
         middleware: [
