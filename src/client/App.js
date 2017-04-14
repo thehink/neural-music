@@ -3,7 +3,7 @@ import proto from '../shared/protos/notes.proto';
 
 import StartAudioContext from 'startaudiocontext';
 
-import Player from './Player';
+import Player from './Player/';
 
 let root = protobuf.parse(proto);
 let SamplesMessage = root.root.lookupType("nm.Sample");
@@ -13,7 +13,7 @@ export default class App{
     this.player = new Player();
     this.loadSongTest();
     document.getElementById('logo').addEventListener('click', this.player.togglePause);
-    StartAudioContext(this.player.context, '#logo', function(){
+    StartAudioContext(this.player.tone, '#logo', function(){
     	console.log('test');
     })
     //document.getElementById('logo').addEventListener('touchend', this.player.togglePause);
