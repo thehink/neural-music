@@ -1,7 +1,7 @@
 import cluster from 'cluster';
 import fs from 'fs';
 import express from 'express';
-import MidiConvert from 'MidiConvert';
+import MidiConvert from 'midiconvert';
 
 import TextToTone from '../shared/utils/TextToTone';
 import marioText from '../shared/midi_mario.txt';
