@@ -20,6 +20,10 @@ function bootstrap () {
 
   LOADED = true;
 
+  if(window.app){
+    window.app.dispose();
+  }
+
   window.app = new App();
 
   console.log('The application has been loaded.');

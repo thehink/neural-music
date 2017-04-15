@@ -15,13 +15,21 @@ export default class Player{
     this.pixelsPerSecond = 100;
     this.minNote = 35;
     this.maxNote = 88;
+    this.iteration = 0;
+    this.avgFps = 0;
+    this.avgDelta = 0;
+    this.lastRender = Date.now();
+    this.playTime = 0;
 
     this.noteHeight = 0;
 
-    this.time = 0;
+    this.time = 0.5;
 
     this.tone = Tone.context;
     Tone.Transport.bpm.value = 120;
+
+    Tone.Transport.latencyHint = 'interactive';
+
     this.synth = new Tone.PolySynth(8, Tone.SimpleSynth).set({
 			"volume" : -8,
 			"oscillator" : {
@@ -41,6 +49,7 @@ export default class Player{
 
     window.addEventListener("resize", this.resize.bind(this));
     this.resize();
+
     this.update();
   }
 
@@ -61,7 +70,9 @@ export default class Player{
   }
 
   play(){
-    Tone.Transport.start(Tone.Transport.now() + 0.3);
+    //this.playTime = Tone.Transport.seconds;
+    Tone.Transport.seconds = this.playTime;
+    Tone.Transport.start();
   }
 
   pause(){
@@ -86,26 +97,54 @@ export default class Player{
       let note = notes[i];
       note.time = this.time += note.delta;
       this.addNote(note);
+
+      Tone.Transport.schedule(time => {
+        this.synth.triggerAttackRelease(midiToPitch(note.pitch), note.duration, time, 0.5);
+      }, note.time);
     }
 
-    let asfasf = new Tone.Part((time, note) => {
-      //use the events to play the synth
-      this.synth.triggerAttackRelease(midiToPitch(note.pitch), note.duration, time, 0.5)
-
-    }, notes).start();
+    console.log('notes', (this.time - this.playTime).toFixed(2), this.notes.length);
   }
 
   update(){
+    let time = Date.now();
+    let delta = time - this.lastRender;
+    this.lastRender = time;
+
+    if(Tone.Transport.state === 'started'){
+      this.playTime += delta/1000;
+    }
+
+    if(++this.iteration % 10 === 0){
+      this.avgFps = Math.round(1000 / this.avgDelta);
+      this.avgDelta = 0;
+    }
+
+    if(this.iteration % 200 === 0){
+      //console.log('Delta', this.playTime - Tone.Transport.seconds);
+    }
+
+    this.avgDelta += delta/10;
+
     this.context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
-    for(let i = 0; i < this.notes.length; ++i){
-      this.notes[i].draw(this.context, Tone.Transport.seconds);
+
+    this.context.fillStyle = "black";
+    this.context.font = '40px serif';
+    this.context.fillText(`FPS: ${this.avgFps}`, 10, 50);
+
+    for(let i = this.notes.length - 1; i > -1; i--){
+      if(this.notes[i]._remove){
+        this.notes.splice(i, 1);
+        continue;
+      }
+      this.notes[i].draw(this.context, this.playTime);
     }
 
     window.requestAnimationFrame(this.update.bind(this));
   }
 
   dispose(){
-
+    Tone.Transport.cancel();
   }
 
 }

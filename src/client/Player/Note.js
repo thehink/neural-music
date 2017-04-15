@@ -29,7 +29,7 @@ export default class Note{
     let width = this.duration * this.player.pixelsPerSecond,
         offsetLeft = this.player.canvasWidth / 2 + (this.time - time) * this.player.pixelsPerSecond;
 
-    if(offsetLeft > this.player.canvasWidth - 100 || offsetLeft + width < 0){
+    if(offsetLeft > this.player.canvasWidth || offsetLeft + width < 0){
       if(offsetLeft + width < 0){
         this.remove();
       }
@@ -45,7 +45,9 @@ export default class Note{
       context.fillStyle = this.color;
     }
 
-    context.fillRect(offsetLeft, (this.pitch - this.player.minNote) * this.player.noteHeight, width-1, this.player.noteHeight);
+    let offsetTop = (this.player.maxNote - this.pitch) * this.player.noteHeight;
+
+    context.fillRect(offsetLeft, offsetTop, width-1, this.player.noteHeight);
   }
 
   remove(){

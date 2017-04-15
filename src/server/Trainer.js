@@ -1,5 +1,7 @@
 import { merge } from 'lodash';
 
+import crypto from 'crypto';
+
 import marioText from '../shared/midi_mario.txt';
 
 import { ticksToTime, timeToTicks } from '../shared/utils/TextToTone';
@@ -13,13 +15,14 @@ export default class Trainer{
     this.options = merge({
       generator: 'lstm',
       hidden_sizes: [128, 128],
-      letter_size: 5,
+      letter_size: 720,
       regc: 0.000001,
       learning_rate: 0.01,
       clipval: 5.0,
       sample_softmax_temperature: 1.0,
       max_chars_gen: 100,
       batch_size: 10,
+      refresh_batch: 5,
     }, options);
 
     this.currentBatch = {
@@ -38,6 +41,8 @@ export default class Trainer{
     this.vocab = [];
     this.data_sents = [];
     this.solver = new R.Solver(); // should be class because it needs memory for step caches
+
+    this.perplexity = 0;
 
     this.prev = {};
     this.last_char = 0;
@@ -257,12 +262,46 @@ export default class Trainer{
   }
 
   generateNextBatch(ticks){
+    let numTicks = 0;
+    let text = '';
+    console.log('generating batch...');
+    let time = Date.now();
+    while(numTicks < ticks){
+      let predictCharacter = this.predictCharacter(this.model, 1.0);
+      if(predictCharacter === ' '){
+        numTicks++;
+      }
 
+      text += predictCharacter;
+    }
+
+    console.log('generated batch!', Date.now() - time, 'ms', 'epoch', (this.tick_iter/this.epoch_size).toFixed(2), 'perplexity', this.perplexity.toFixed(2));
+
+    return text;
   }
 
-  train(){
+  train(callback){
     this.reInit(marioText);
+
+    let time = Date.now();
+    let passedTime = 0;
+    let id = 1;
     while(true){
+      let delta = Date.now() - time;
+      time = Date.now();
+      passedTime += delta;
+
+      if(passedTime/1000 > this.options.refresh_batch){
+        let text = this.generateNextBatch(timeToTicks(this.options.batch_size));
+        callback({
+          perplexity: this.perplexity,
+          epoch: this.tick_iter/this.epoch_size,
+          id: (id++).toString(),
+          text: text,
+        });
+
+        passedTime = 0;
+      }
       this.tick();
     }
   }
@@ -288,24 +327,6 @@ export default class Trainer{
 
       // evaluate now and then
       this.tick_iter += 1;
-      if(this.tick_iter % 100 === 0) {
-        // draw samples
-
-        let text = '';
-        for (let i = 0; i < 400; ++i){
-          text += this.predictCharacter(this.model, 1.0);
-        }
-        console.log(text);
-      }
-      if(this.tick_iter % 500 === 0) {
-        // draw argmax prediction
-        //var pred = predictSentence(model, 400, false);
-        //console.log('argmax', pred)
-        console.log(' ');
-        console.log('epoch', (this.tick_iter/this.epoch_size).toFixed(2));
-        console.log('perplexity', cost_struct.ppl.toFixed(2));
-        console.log('forw/bwd time per example', tick_time.toFixed(1) + 'ms');
-        console.log(' ');
-      }
+      this.perplexity = cost_struct.ppl;
   }
 }

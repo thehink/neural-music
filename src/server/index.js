@@ -9,6 +9,8 @@ import marioText from '../shared/midi_mario.txt';
 import protobuf from 'protobufjs';
 import proto from '../shared/protos/notes.proto';
 
+import settings from '../shared/settings';
+
 import Trainer from './Trainer';
 
 if (cluster.isMaster) {
@@ -16,7 +18,10 @@ if (cluster.isMaster) {
 
   let root = protobuf.parse(proto);
 
+  let currentId = '';
   let currentBatch = {};
+  let firstBatch = {};
+  let prevNotes = [];
 
   // respond with "hello world" when a GET request is made to the homepage
   app.get('/', function (req, res) {
@@ -24,24 +29,16 @@ if (cluster.isMaster) {
     res.json(notes);
   });
 
-  app.get('/api/proto', function (req, res) {
-    let notes = TextToTone(marioText);
-
-    let payload = {
-      perplexity: 0.4,
-      epoch: 1,
-      id: '',
-      notes: notes
-    };
-
-    var SamplesMessage = root.root.lookupType("nm.Sample");
-    var message = SamplesMessage.fromObject(payload);
-    var buffer = SamplesMessage.encode(message).finish();
-
+  app.get('/api/batch', (req, res) => {
+    if(!req.query.current){
+      res.set('Content-Type', 'application/protobuf');
+      res.header("Content-Length", firstBatch.length);
+      res.end(firstBatch);
+      return;
+    }
     res.set('Content-Type', 'application/protobuf');
-    res.header("Content-Length", buffer.length);
-
-    res.end(buffer);
+    res.header("Content-Length", currentBatch.length);
+    res.end(currentBatch);
   });
 
   app.listen(4000, function () {
@@ -52,16 +49,38 @@ if (cluster.isMaster) {
 
   for (const id in cluster.workers) {
     cluster.workers[id].on('message', batch => {
-      currentBatch = batch;
+      let notes = TextToTone(batch.text);
+
+      currentId = batch.id;
+
+      let payload = {
+        perplexity: batch.perplexity,
+        epoch: batch.epoch,
+        id: batch.id,
+        notes: notes
+      };
+
+      var SamplesMessage = root.root.lookupType("nm.Sample");
+      var message = SamplesMessage.fromObject(payload);
+      var buffer = SamplesMessage.encode(message).finish();
+
+      currentBatch = buffer;
+
+      payload.notes = prevNotes.concat(notes);
+      var message = SamplesMessage.fromObject(payload);
+      var buffer = SamplesMessage.encode(message).finish();
+      firstBatch = buffer;
+      prevNotes = notes;
     });
   }
 }else{
   let trainer = new Trainer({
-    batch_size: 10,
+    batch_size: settings.batch_size,
+    refresh_batch: settings.refresh_batch
   });
   console.log('worker');
   trainer.train(batch => {
-    process.send({ batch });
+    process.send(batch);
   });
 }
 

@@ -1,3 +1,5 @@
+import { uniq } from 'lodash';
+
 const ASCII_OFFSET = 12;
 const PITCH_OFFSET = 12;
 
@@ -16,7 +18,7 @@ export const ticksToTime = (ticks) => {
 }
 
 export const timeToTicks = (seconds) => {
-  return  ticks = PPQ * seconds / (60 / BPM);
+  return PPQ * seconds / (60 / BPM);
 }
 
 export default (text, precision) => {
@@ -25,7 +27,7 @@ export default (text, precision) => {
 
   let activePitches = Array(88).fill(0);
 
-  let ntt = text.split(' ');
+  let ntt = text.split(' ').map(e => uniq(e).join(''));
       ntt.push('');
   let prevNotes = [];
   for(let timestep = 0; timestep < ntt.length - 1; timestep++){
