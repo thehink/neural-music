@@ -1,11 +1,14 @@
+import EventEmitter from 'neural/shared/utils/EventEmitter';
+
 import Tone from 'tone';
 import Note from './Note';
 
 import { midiToPitch } from 'neural/shared/utils/TextToTone';
 
-export default class Player{
+export default class Player extends EventEmitter{
 
   constructor(context){
+    super();
     this.notes = [];
     this.canvas = document.getElementById('canvas');
     this.context = this.canvas.getContext('2d');
@@ -111,27 +114,28 @@ export default class Player{
     let delta = time - this.lastRender;
     this.lastRender = time;
 
+    // increase playback time
     if(Tone.Transport.state === 'started'){
       this.playTime += delta/1000;
+      this.emit('playback', this.playTime, this.time);
     }
 
+    //calculate avg fps
     if(++this.iteration % 10 === 0){
       this.avgFps = Math.round(1000 / this.avgDelta);
       this.avgDelta = 0;
     }
 
-    if(this.iteration % 200 === 0){
-      //console.log('Delta', this.playTime - Tone.Transport.seconds);
-    }
-
     this.avgDelta += delta/10;
 
+    //clear canvas
     this.context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
 
     this.context.fillStyle = "black";
     this.context.font = '40px serif';
     this.context.fillText(`FPS: ${this.avgFps}`, 10, 50);
 
+    //draw notes
     for(let i = this.notes.length - 1; i > -1; i--){
       if(this.notes[i]._remove){
         this.notes.splice(i, 1);

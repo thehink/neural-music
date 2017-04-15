@@ -9,7 +9,7 @@ message Note {
 }
 
 message Sample {
-  string id = 1;
+  uint32 id = 1;
   float perplexity = 2;
   float epoch = 3;
   repeated Note notes = 4;

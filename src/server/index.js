@@ -18,7 +18,7 @@ if (cluster.isMaster) {
 
   let root = protobuf.parse(proto);
 
-  let currentId = '';
+  let currentId = 0;
   let currentBatch = {};
   let firstBatch = {};
   let prevNotes = [];

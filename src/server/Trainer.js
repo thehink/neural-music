@@ -42,6 +42,7 @@ export default class Trainer{
     this.data_sents = [];
     this.solver = new R.Solver(); // should be class because it needs memory for step caches
 
+    this.batchId = 0;
     this.perplexity = 0;
 
     this.prev = {};
@@ -277,7 +278,13 @@ export default class Trainer{
 
     console.log('generated batch!', Date.now() - time, 'ms', 'epoch', (this.tick_iter/this.epoch_size).toFixed(2), 'perplexity', this.perplexity.toFixed(2));
 
-    return text;
+    return {
+      time: Date.now() - time,
+      perplexity: this.perplexity,
+      epoch: this.tick_iter/this.epoch_size,
+      id: this.batchId++,
+      text: text
+    };
   }
 
   train(callback){
@@ -292,15 +299,10 @@ export default class Trainer{
       passedTime += delta;
 
       if(passedTime/1000 > this.options.refresh_batch){
-        let text = this.generateNextBatch(timeToTicks(this.options.batch_size));
-        callback({
-          perplexity: this.perplexity,
-          epoch: this.tick_iter/this.epoch_size,
-          id: (id++).toString(),
-          text: text,
-        });
+        let batch = this.generateNextBatch(timeToTicks(this.options.batch_size));
+        callback(batch);
 
-        passedTime = 0;
+        passedTime = batch.time;
       }
       this.tick();
     }
