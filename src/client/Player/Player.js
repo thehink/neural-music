@@ -2,6 +2,7 @@ import EventEmitter from 'neural/shared/utils/EventEmitter';
 
 import Tone from 'tone';
 import Note from './Note';
+import Separator from './Separator';
 
 import { midiToPitch } from 'neural/shared/utils/TextToTone';
 
@@ -90,16 +91,29 @@ export default class Player extends EventEmitter{
   }
 
   addNote(note){
-    note = new Note(note);
     note.player = this;
     this.notes.push(note);
   }
 
-  addNotes(notes){
+  addBatch(batch){
+    const {
+      notes
+    } = batch;
+
+    this.addNote(new Separator({
+      time: this.time,
+      width: 1,
+    }, batch));
+
     for(let i = 0; i < notes.length; ++i){
       let note = notes[i];
+
+      if(note.delta < 0){
+        console.log(note);
+      }
+
       note.time = this.time += note.delta;
-      this.addNote(note);
+      this.addNote(new Note(note));
 
       Tone.Transport.schedule(time => {
         this.synth.triggerAttackRelease(midiToPitch(note.pitch), note.duration, time, 0.5);
@@ -107,6 +121,23 @@ export default class Player extends EventEmitter{
     }
 
     console.log('notes', (this.time - this.playTime).toFixed(2), this.notes.length);
+  }
+
+  drawNotes(){
+    for(let i = this.notes.length - 1; i > -1; i--){
+      if(this.notes[i]._remove){
+        this.notes.splice(i, 1);
+        continue;
+      }
+
+      this.notes[i].update();
+
+      if(!this.notes[i].shouldRender()){
+        continue;
+      }
+
+      this.notes[i].draw(this.context);
+    }
   }
 
   update(){
@@ -136,13 +167,7 @@ export default class Player extends EventEmitter{
     this.context.fillText(`FPS: ${this.avgFps}`, 10, 50);
 
     //draw notes
-    for(let i = this.notes.length - 1; i > -1; i--){
-      if(this.notes[i]._remove){
-        this.notes.splice(i, 1);
-        continue;
-      }
-      this.notes[i].draw(this.context, this.playTime);
-    }
+    this.drawNotes();
 
     window.requestAnimationFrame(this.update.bind(this));
   }

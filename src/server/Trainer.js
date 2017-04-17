@@ -1,4 +1,4 @@
-import { merge } from 'lodash';
+import { merge, uniq } from 'lodash';
 
 import crypto from 'crypto';
 
@@ -14,15 +14,17 @@ export default class Trainer{
   constructor(options){
     this.options = merge({
       generator: 'lstm',
-      hidden_sizes: [128, 128],
-      letter_size: 720,
+      hidden_sizes: [350, 350],
+      letter_size: 34,
       regc: 0.000001,
-      learning_rate: 0.01,
+      learning_rate: 0.001,
       clipval: 5.0,
       sample_softmax_temperature: 1.0,
       max_chars_gen: 100,
       batch_size: 10,
       refresh_batch: 5,
+      smooth_eps: 1e-08,
+      decay_rate: 0.999
     }, options);
 
     this.currentBatch = {
@@ -31,6 +33,8 @@ export default class Trainer{
       id: '',
       text: ''
     };
+
+    this.modelPath = './weights/model.json';
 
     this.tick_iter = 0;
     this.epoch_size = -1;
@@ -55,37 +59,23 @@ export default class Trainer{
     // go over all characters and keep track of all unique ones seen
     var txt = sents.join(''); // concat all
 
-    // count up all characters
-    var d = {};
-    for(var i=0,n=txt.length;i<n;i++) {
-      var txti = txt[i];
-      if(txti in d) { d[txti] += 1; }
-      else { d[txti] = 1; }
-    }
-
-    // filter by count threshold and create pointers
     this.letterToIndex = {};
     this.indexToLetter = {};
     this.vocab = [];
-    // NOTE: start at one because we will have START and END tokens!
-    // that is, START token will be index 0 in model letter vectors
-    // and END token will be index 0 in the next character softmax
-    var q = 1;
-    for(let ch in d) {
-      if(d.hasOwnProperty(ch)) {
-        if(d[ch] >= count_threshold) {
-          // add character to this.vocab
-          this.letterToIndex[ch] = q;
-          this.indexToLetter[q] = ch;
-          this.vocab.push(ch);
-          q++;
-        }
-      }
+
+    let characters = uniq(txt);
+    this.numCharacters = characters.length;
+
+    for(let i in characters){
+      this.letterToIndex[characters[i]] = i;
+      this.indexToLetter[i] = characters[i];
+      this.vocab.push(characters[i]);
     }
 
     // globals written: indexToLetter, letterToIndex, this.vocab (list), and:
-    this.input_size = this.vocab.length + 1;
-    this.output_size = this.vocab.length + 1;
+    this.letter_size = this.vocab.length;
+    this.input_size = this.vocab.length;
+    this.output_size = this.vocab.length;
     this.epoch_size = sents.length;
     console.log('found ' + this.vocab.length + ' distinct characters: ' + this.vocab.join(''));
   }
@@ -116,6 +106,8 @@ export default class Trainer{
 
   reInit(text){
     this.solver = new R.Solver(); // reinit solver
+    this.solver.decay_rate = this.options.decay_rate;
+    this.solver.smooth_eps = this.options.smooth_eps;
 
     this.tick_iter = 0;
 
@@ -128,21 +120,22 @@ export default class Trainer{
     let next_chars = []
 
     console.log('characters: ', text.length);
+
+/*
+    let pieces = text.split(' ');
+
+    for(let i = 0; i < pieces.length - maxlen; i += step){
+      let txt = pieces.slice(i, i + maxlen).join(' ');
+      this.data_sents.push(txt);
+    }*/
+
+
     for (let i = 0; i < text.length - maxlen; i += step){
-      let sss = '';
-      for(let j = 0; j < maxlen; ++j){
-        sss += text[i + j];
-      }
-      data_sents_raw.push(sss)
+      let sss = text.slice(i, i + maxlen);
+      this.data_sents.push(sss);
     }
 
-    this.data_sents = [];
-    for(var i = 0; i < data_sents_raw.length; i++) {
-      var sent = data_sents_raw[i].trim();
-      if(sent.length > 0) {
-        this.data_sents.push(sent);
-      }
-    }
+    console.log('sents', this.data_sents.length);
 
     this.initVocab(this.data_sents, 1); // takes count threshold for characters
     this.model = this.initModel();
@@ -215,15 +208,12 @@ export default class Trainer{
     let probs = R.softmax(logprobs);
     ix = R.samplei(probs.w);
 
-    if(ix == 0){
-      return '';
-    }
-
     this.last_char = ix;
     return this.indexToLetter[ix];
   }
 
   costFun(model, sent){
+    //sent += ' ';
     // takes a model and a sentence and
     // calculates the loss. Also returns the Graph
     // object which can be used to do backprop
@@ -232,10 +222,10 @@ export default class Trainer{
     var log2ppl = 0.0;
     var cost = 0.0;
     var prev = {};
-    for(var i=-1; i < n; i++) {
+    for(var i = 0; i < n - 1; i++) {
       // start and end tokens are zeros
-      var ix_source = i === -1 ? 0 : this.letterToIndex[sent[i]]; // first step: start with START token
-      var ix_target = i === n-1 ? 0 : this.letterToIndex[sent[i+1]]; // last step: end with END token
+      var ix_source = this.letterToIndex[sent[i]]; // first step: start with START token
+      var ix_target = this.letterToIndex[sent[i + 1]]; // last step: end with END token
 
       let lh = this.forwardIndex(G, model, ix_source, prev);
       prev = lh;
@@ -311,7 +301,7 @@ export default class Trainer{
   tick(){
       // sample sentence fromd data
       var sentix = R.randi(0, this.data_sents.length);
-      var sent = this.data_sents[sentix];
+      var sent = this.data_sents[this.tick_iter % this.data_sents.length];
 
       var t0 = +new Date();  // log start timestamp
 

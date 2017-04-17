@@ -12,6 +12,7 @@ import proto from '../shared/protos/notes.proto';
 import settings from '../shared/settings';
 
 import Trainer from './Trainer';
+import SynapticTrainer from './SynapticTrainer';
 
 if (cluster.isMaster) {
   let app = express();
@@ -74,6 +75,7 @@ if (cluster.isMaster) {
     });
   }
 }else{
+
   let trainer = new Trainer({
     batch_size: settings.batch_size,
     refresh_batch: settings.refresh_batch
@@ -82,6 +84,12 @@ if (cluster.isMaster) {
   trainer.train(batch => {
     process.send(batch);
   });
+
+/*
+ let trainer2 = new SynapticTrainer();
+ trainer2.train(batch => {
+   process.send(batch);
+ });*/
 }
 
 

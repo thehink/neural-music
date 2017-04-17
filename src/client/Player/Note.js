@@ -1,5 +1,7 @@
 import { midiToPitch } from 'neural/shared/utils/TextToTone';
 
+import Block from './Block';
+
 const COLORS = {
   'C': '#4e61d8',
   'Cs': '#8064c6',
@@ -15,42 +17,30 @@ const COLORS = {
   'B': '#4598b6'
 }
 
-export default class Note{
+export default class Note extends Block{
   constructor(note){
+    super(note);
     this.pitch = note.pitch;
     this.duration = note.duration;
     this.time = note.time;
 
     let name = midiToPitch(note.pitch).replace('#', 's');
     this.color = COLORS[name.slice(0, name.length - 1)];
+    this.noteColor = this.color;
   }
 
-  draw(context, time){
-    let width = this.duration * this.player.pixelsPerSecond,
-        offsetLeft = this.player.canvasWidth / 2 + (this.time - time) * this.player.pixelsPerSecond;
+  update(){
+    super.update();
 
-    if(offsetLeft > this.player.canvasWidth || offsetLeft + width < 0){
-      if(offsetLeft + width < 0){
-        this.remove();
-      }
+    this.width = this.duration * this.player.pixelsPerSecond;
 
-      return;
-    }
-
-    context.beginPath();
-
-    if(time - this.time > 0 && time - this.time < this.duration){
-      context.fillStyle = "black";
+    if(this.player.playTime - this.time > 0 && this.player.playTime - this.time < this.duration){
+      this.color = "black";
     }else{
-      context.fillStyle = this.color;
+      this.color = this.noteColor;
     }
 
-    let offsetTop = (this.player.maxNote - this.pitch) * this.player.noteHeight;
-
-    context.fillRect(offsetLeft, offsetTop, width-1, this.player.noteHeight);
-  }
-
-  remove(){
-    this._remove = true;
+    this.height = this.player.noteHeight;
+    this.offsetTop = (this.player.maxNote - this.pitch) * this.player.noteHeight;
   }
 }

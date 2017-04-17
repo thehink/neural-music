@@ -25,6 +25,7 @@ export default class App{
     this.epoch = 0;
     this.batchId = '';
     this.fetching = false;
+    this.lastFetch = 0;
 
     this.loadNextBatch();
     //setInterval(this.loadNextBatch.bind(this), (settings.refresh_time) * 1000);
@@ -33,18 +34,18 @@ export default class App{
 
   onPlayback(currentTime, totalTime){
     if(totalTime - currentTime < 8){
-      console.log('load more data...');
       this.loadNextBatch();
     }
   }
 
   loadNextBatch(){
 
-    if(this.fetching){
+    if(this.fetching || Date.now() - this.lastFetch < 2 * 1000){
       return;
     }
 
     this.fetching = true;
+    this.lastFetch  = Date.now();
 
     fetch(`/api/batch?current=${this.batchId}`, {
       method: 'get'
@@ -54,7 +55,7 @@ export default class App{
       var message = SamplesMessage.decode(new Uint8Array(buf));
       if(message.id !== this.batchId){
         this.batchId = message.id;
-        this.player.addNotes(message.notes);
+        this.player.addBatch(message);
       }else{
         console.log('discarding batch:', message.id);
       }
