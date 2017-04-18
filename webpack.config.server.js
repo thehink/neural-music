@@ -29,7 +29,7 @@ module.exports = {
       },
       {
         test: /\.(txt|proto)(\?v=\d+\.\d+\.\d+)?$/,
-        use: ['file-loader']
+        use: ['raw-loader']
       }
     ]
   },

@@ -14,3 +14,15 @@ message Sample {
   float epoch = 3;
   repeated Note notes = 4;
 }
+
+message Message {
+
+  enum Status {
+    SUCCESS = 0;
+    ERROR = 1;
+  }
+
+  Status status = 1;
+  string message = 2;
+  Sample sample = 3;
+}
