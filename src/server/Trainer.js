@@ -115,7 +115,7 @@ export default class Trainer{
     var data_sents_raw = [];
 
     let maxlen = 40
-    let step = 3
+    let step = 40
     let sentences = []
     let next_chars = []
 
