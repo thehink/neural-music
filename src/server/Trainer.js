@@ -2,8 +2,6 @@ import { merge, uniq } from 'lodash';
 
 import crypto from 'crypto';
 
-import marioText from '../shared/training_data/midi_mario.txt';
-
 import { ticksToTime, timeToTicks } from '../shared/utils/TextToTone';
 
 import R from '../../lib/recurrent.js';
@@ -19,7 +17,7 @@ export default class Trainer{
   constructor(options){
     this.options = merge({
       generator: 'lstm',
-      hidden_sizes: [350, 350],
+      hidden_sizes: [412, 412, 412],
       letter_size: 34,
       regc: 0.000001,
       learning_rate: 0.001,
@@ -39,6 +37,7 @@ export default class Trainer{
       text: ''
     };
 
+    this.trainingDataPath = './training_data/midi_8.txt';
     this.modelPath = './weights/model.json';
 
     this.tick_iter = 0;
@@ -140,7 +139,7 @@ export default class Trainer{
     this.data_sents.push(sss);
   }
 
-  console.log('sents', this.data_sents.length);
+  console.log('txt chunks', this.data_sents.length);
 
   this.initVocab(this.data_sents, 1); // takes count threshold for characters
   this.model = this.initModel();
@@ -341,9 +340,12 @@ trainLoop(callback){
 }
 
 train(callback){
-  this.reInit(marioText);
-  this.loadModel(found => {
-    this.trainLoop(callback);
+  console.log('reading training data...');
+  fs.readFile(this.trainingDataPath, 'utf8', (err, content) => {
+    this.reInit(content);
+    this.loadModel(found => {
+      this.trainLoop(callback);
+    });
   });
 }
 

@@ -15,7 +15,7 @@ message Sample {
   repeated Note notes = 4;
 }
 
-message Message {
+message Response {
 
   enum Status {
     SUCCESS = 0;

@@ -6,8 +6,9 @@ import StartAudioContext from 'startaudiocontext';
 
 import Player from './Player/';
 
-let root = protobuf.parse(proto);
-let SamplesMessage = root.root.lookupType("nm.Sample");
+const Root = protobuf.parse(proto);
+const ResponseMessage = Root.root.lookupType("nm.Response");
+const SampleMessage = Root.root.lookupType("nm.Sample");
 
 export default class App{
   constructor(){
@@ -23,7 +24,8 @@ export default class App{
 
     this.perplexity = 0;
     this.epoch = 0;
-    this.batchId = '';
+    this.chunkId;
+    this.nextChunkId = 0;
     this.fetching = false;
     this.lastFetch = 0;
 
@@ -47,18 +49,28 @@ export default class App{
     this.fetching = true;
     this.lastFetch  = Date.now();
 
-    fetch(`/api/batch?current=${this.batchId}`, {
+    fetch(`/api/chunk?chunk=${this.nextChunkId || ''}`, {
       method: 'get'
     }).then(response => {
       return response.arrayBuffer();
     }).then(buf => {
-      var message = SamplesMessage.decode(new Uint8Array(buf));
-      if(message.id !== this.batchId){
-        this.batchId = message.id;
-        this.player.addBatch(message);
-      }else{
-        console.log('discarding batch:', message.id);
+      var message = ResponseMessage.decode(new Uint8Array(buf));
+
+      if(message.status === 1){
+        console.log('error', message.message);
+        return;
       }
+
+      let chunk = message.sample;
+
+      if(chunk.id !== this.chunkId){
+        this.chunkId = chunk.id;
+        this.player.addBatch(chunk);
+      }else{
+        console.log('discarding chunk:', chunk.id);
+      }
+
+      this.nextChunkId = this.chunkId + 1;
       this.fetching = false;
 
     }).catch(err => {

@@ -18,7 +18,7 @@ export default class Player extends EventEmitter{
 
     this.pixelsPerSecond = 100;
     this.minNote = 35;
-    this.maxNote = 88;
+    this.maxNote = 90;
     this.iteration = 0;
     this.avgFps = 0;
     this.avgDelta = 0;
@@ -110,8 +110,8 @@ export default class Player extends EventEmitter{
     for(let i = 0; i < notes.length; ++i){
       let note = notes[i];
 
-      if(note.delta < 0){
-        console.log(note);
+      if(note.pitch > this.maxNote || note.pitch < this.minNote){
+        continue;
       }
 
       note.time = this.time += note.delta;
@@ -152,6 +152,11 @@ export default class Player extends EventEmitter{
     let time = Date.now();
     let delta = time - this.lastRender;
     this.lastRender = time;
+
+    //pause playback temporarily
+    if(this.playTime > this.time){
+      this.pause();
+    }
 
     // increase playback time
     if(Tone.Transport.state === 'started'){

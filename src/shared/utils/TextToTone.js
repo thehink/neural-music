@@ -1,6 +1,6 @@
 import { uniq } from 'lodash';
 
-const ASCII_OFFSET = 12;
+const ASCII_OFFSET = 24;
 const PITCH_OFFSET = 12;
 
 const BPM = 120;
@@ -25,7 +25,7 @@ export default (text, precision) => {
   let sample = [];
   let timestep = 0;
 
-  let activePitches = Array(88).fill(0);
+  let activePitches = Array(128).fill(0);
 
   let ntt = text.split(' ').map(e => uniq(e).join(''));
       ntt.push('');

@@ -5,7 +5,6 @@ import settings from '../shared/settings';
 
 import Server from './Server';
 import Trainer from './Trainer';
-import SynapticTrainer from './SynapticTrainer';
 
 if (cluster.isMaster) {
   let server = new Server();

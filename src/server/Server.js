@@ -3,6 +3,10 @@ import protobuf from 'protobufjs';
 import proto from '../shared/protos/notes.proto';
 import TextToTone from '../shared/utils/TextToTone';
 
+const Root = protobuf.parse(proto);
+const ResponseMessage = Root.root.lookupType("nm.Response");
+const SampleMessage = Root.root.lookupType("nm.Sample");
+
 export default class Server{
   constructor(){
     this.app = express();
@@ -10,6 +14,10 @@ export default class Server{
     this.onMessage = this.onMessage.bind(this);
 
     this.root = protobuf.parse(proto);
+
+    this.chunkCache = {};
+
+    this.chunks = [];
 
     this.currentId = 0;
     this.currentBatch = {};
@@ -23,21 +31,53 @@ export default class Server{
       });
     });
 
-    this.app.get('/api/batch', (req, res) => {
-      if(!req.query.current){
-        res.set('Content-Type', 'application/protobuf');
-        res.header("Content-Length", this.firstBatch.length);
-        res.end(this.firstBatch);
-        return;
-      }
+    this.app.get('/api/chunk', (req, res) => {
       res.set('Content-Type', 'application/protobuf');
-      res.header("Content-Length", this.currentBatch.length);
-      res.end(this.currentBatch);
+      let responseBuffer = this.fetchChunkResponse(parseInt(req.query.chunk));
+      res.header("Content-Length", responseBuffer.length);
+      res.end(responseBuffer);
     });
 
     this.app.listen(4000, function () {
       console.log('Web server listening on port 4000');
     });
+  }
+
+  fetchChunkResponse(chunkId){
+    let chunk;
+
+    if(!chunkId){
+      chunk = this.chunks[this.chunks.length - 3]; //default chunk, delay by 2
+    }else{
+      chunk = this.chunks.find(chunk => chunk.id === chunkId)
+    }
+
+    if(!chunk){
+      return this.buildResponseBuffer(null, 1, 'could not fetch chunk!');
+    }
+
+    return chunk.buffer;
+  }
+
+  buildResponseBuffer(sample, status = 0, message = ''){
+    let payload = {
+      status: status,
+      message: message,
+      sample: sample,
+    };
+
+    var message = ResponseMessage.fromObject(payload);
+    var buffer = ResponseMessage.encode(message).finish();
+
+    return buffer;
+  }
+
+  addChunk(chunk){
+    this.chunks.push(chunk);
+
+    if(this.chunks.length >= 100){
+      this.chunks.splice(0, 1);
+    }
   }
 
   onMessage(batch){
@@ -52,16 +92,11 @@ export default class Server{
       notes: notes
     };
 
-    var SamplesMessage = this.root.root.lookupType("nm.Sample");
-    var message = SamplesMessage.fromObject(payload);
-    var buffer = SamplesMessage.encode(message).finish();
+    let buffer = this.buildResponseBuffer(payload);
 
-    this.currentBatch = buffer;
+    //cache response buffer
+    payload.buffer = buffer;
 
-    payload.notes = this.prevNotes.concat(notes);
-    var message = SamplesMessage.fromObject(payload);
-    var buffer = SamplesMessage.encode(message).finish();
-    this.firstBatch = buffer;
-    this.prevNotes = notes;
+    this.addChunk(payload);
   }
 }
