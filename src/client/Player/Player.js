@@ -105,6 +105,8 @@ export default class Player extends EventEmitter{
       width: 1,
     }, batch));
 
+    let latestNoteEnd = 0;
+
     for(let i = 0; i < notes.length; ++i){
       let note = notes[i];
 
@@ -115,10 +117,16 @@ export default class Player extends EventEmitter{
       note.time = this.time += note.delta;
       this.addNote(new Note(note));
 
+      if(latestNoteEnd < note.time + note.duration){
+        latestNoteEnd = note.time + note.duration;
+      }
+
       Tone.Transport.schedule(time => {
         this.synth.triggerAttackRelease(midiToPitch(note.pitch), note.duration, time, 0.5);
       }, note.time);
     }
+
+    this.time = latestNoteEnd;
 
     console.log('notes', (this.time - this.playTime).toFixed(2), this.notes.length);
   }
