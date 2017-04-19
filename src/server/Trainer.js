@@ -2,12 +2,17 @@ import { merge, uniq } from 'lodash';
 
 import crypto from 'crypto';
 
-import marioText from '../shared/training_data/waltzes_simple_chords_7.txt';
+import marioText from '../shared/training_data/midi_mario.txt';
 
 import { ticksToTime, timeToTicks } from '../shared/utils/TextToTone';
 
 import R from '../../lib/recurrent.js';
 import fs from 'fs';
+
+const Avg = arr => {
+  let sum = arr.reduce((a, b) => a + b, 0);
+  return sum / arr.length;
+}
 
 export default class Trainer{
 
@@ -194,7 +199,6 @@ loadModel(callback){
     this.tick_iter = j.iteration;
     this.epoch_size = j.epoch_size;
 
-    this.tick_iter = 0;
     this.solver = new R.Solver(); // have to reinit the solver since model changed
 
     console.log('model loaded!');
@@ -299,19 +303,34 @@ generateNextBatch(ticks){
 }
 
 trainLoop(callback){
+  let it = 1;
   let time = Date.now();
   let passedTime = 0;
   let id = 1;
+  let avgTime = 0;
+  let avgsTimes = [];
+  let lastTime = Date.now();
   while(true){
     let delta = Date.now() - time;
-    time = Date.now();
     passedTime += delta;
 
-    if(passedTime/1000 > this.options.refresh_batch){
+    let targetTime = time + it * this.options.refresh_batch * 1000;
+
+    if(Date.now() >= targetTime - avgTime){
       let batch = this.generateNextBatch(timeToTicks(this.options.batch_size));
       callback(batch);
 
-      passedTime = batch.time;
+      console.log('chunkTime', batch.time, 'avgTime', avgTime.toFixed(2), 'targetMargin', targetTime - Date.now(), 'lastTime', Date.now() - lastTime, 'iteration', this.tick_iter);
+
+      avgsTimes.push(batch.time);
+
+      if(avgsTimes.length >= 10){
+        avgsTimes.splice(0, 1);
+      }
+
+      lastTime = Date.now();
+      avgTime = Avg(avgsTimes);
+      it++;
     }
     this.tick();
 

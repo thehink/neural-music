@@ -33,7 +33,7 @@ export default class App{
   }
 
   onPlayback(currentTime, totalTime){
-    if(totalTime - currentTime < 8){
+    if(totalTime - currentTime < 6){
       this.loadNextBatch();
     }
   }

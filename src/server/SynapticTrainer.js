@@ -9,7 +9,7 @@ import { merge, uniq } from 'lodash';
 
 import { ticksToTime, timeToTicks } from '../shared/utils/TextToTone';
 
-import marioText from '../shared/midi_mario.txt';
+import marioText from '../shared/training_data/midi_mario.txt';
 
 function softmax(arr) {
   return arr.map(function(value,index) {
