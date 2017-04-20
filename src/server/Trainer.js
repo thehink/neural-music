@@ -6,6 +6,7 @@ import { ticksToTime, timeToTicks } from '../shared/utils/TextToTone';
 
 import R from '../../lib/recurrent.js';
 import fs from 'fs';
+import fsp from 'fs-promise';
 
 const Avg = arr => {
   let sum = arr.reduce((a, b) => a + b, 0);
@@ -17,7 +18,7 @@ export default class Trainer{
   constructor(options){
     this.options = merge({
       generator: 'lstm',
-      hidden_sizes: [412, 412, 412],
+      hidden_sizes: [350, 350, 350],
       letter_size: 34,
       regc: 0.000001,
       learning_rate: 0.001,
@@ -37,7 +38,7 @@ export default class Trainer{
       text: ''
     };
 
-    this.trainingDataPath = './training_data/midi_8.txt';
+    this.trainingDataPath = './training_data/mario.mid.txt';
     this.modelPath = './weights/model.json';
 
     this.tick_iter = 0;
@@ -146,6 +147,12 @@ export default class Trainer{
 }
 
 saveModel(){
+  let modelData = this.getModelJson();
+  fs.writeFileSync(this.modelPath, JSON.stringify(modelData), 'utf-8');
+  console.log("weights saved!", this.modelPath);
+}
+
+getModelJson(){
   let out = {
     hidden_sizes: this.options.hidden_sizes,
     generator: this.options.generator,
@@ -164,45 +171,32 @@ saveModel(){
     }
   }
   out.model = model_out;
-  let jsonTxt = JSON.stringify(out);
 
-  fs.writeFileSync(this.modelPath, jsonTxt, 'utf-8');
-  console.log("weights saved!", this.modelPath);
+  return out;
 }
 
-loadModel(callback){
-  fs.readFile(this.modelPath, (err, content) => {
-    if (err) {
-      console.log('could not find model!');
-      callback(false);
-      return console.log(err);
+loadModel(j){
+  this.options.hidden_sizes = j.hidden_sizes;
+  this.options.generator = j.generator;
+  this.options.letter_size = j.letter_size;
+  this.model = {};
+  for(var k in j.model) {
+    if(j.model.hasOwnProperty(k)) {
+      var matjson = j.model[k];
+      this.model[k] = new R.Mat(1,1);
+      this.model[k].fromJSON(matjson);
     }
+  }
+  this.letterToIndex = j['letterToIndex'];
+  this.indexToLetter = j['indexToLetter'];
+  this.vocab = j['vocab'];
 
-    let j = JSON.parse(content);
+  this.tick_iter = j.iteration;
+  this.epoch_size = j.epoch_size;
 
-    this.options.hidden_sizes = j.hidden_sizes;
-    this.options.generator = j.generator;
-    this.options.letter_size = j.letter_size;
-    this.model = {};
-    for(var k in j.model) {
-      if(j.model.hasOwnProperty(k)) {
-        var matjson = j.model[k];
-        this.model[k] = new R.Mat(1,1);
-        this.model[k].fromJSON(matjson);
-      }
-    }
-    this.letterToIndex = j['letterToIndex'];
-    this.indexToLetter = j['indexToLetter'];
-    this.vocab = j['vocab'];
+  this.solver = new R.Solver(); // have to reinit the solver since model changed
 
-    this.tick_iter = j.iteration;
-    this.epoch_size = j.epoch_size;
-
-    this.solver = new R.Solver(); // have to reinit the solver since model changed
-
-    console.log('model loaded!');
-    callback(true);
-  });
+  console.log('model loaded!');
 }
 
 forwardIndex(G, model, ix, prev){
@@ -276,10 +270,20 @@ median(values){
   else return (values[half-1] + values[half]) / 2.0;
 }
 
-generateNextBatch(ticks){
+generateChunkFromModel(ticks){
+  return fsp.readJson(this.modelPath)
+  .then(model => {
+    this.loadModel(model);
+    return this.generateNextChunk(ticks);
+  }).catch(err => {
+    console.log(err);
+  });
+}
+
+generateNextChunk(ticks){
   let numTicks = 0;
   let text = '';
-  console.log('generating batch...');
+  console.log('generating chunk...');
   let time = Date.now();
   while(numTicks < ticks){
     let predictCharacter = this.predictCharacter(this.model, 1.0);
@@ -290,7 +294,7 @@ generateNextBatch(ticks){
     text += predictCharacter;
   }
 
-  console.log('generated batch!', Date.now() - time, 'ms', 'epoch', (this.tick_iter/this.epoch_size).toFixed(2), 'perplexity', this.perplexity.toFixed(2));
+  console.log('generated chunk!', Date.now() - time, 'ms', 'epoch', (this.tick_iter/this.epoch_size).toFixed(2), 'perplexity', this.perplexity.toFixed(2));
 
   return {
     time: Date.now() - time,
@@ -306,7 +310,7 @@ trainLoop(callback){
   let time = Date.now();
   let passedTime = 0;
   let id = 1;
-  let avgTime = 0;
+  let avgTime = 2000;
   let avgsTimes = [];
   let lastTime = Date.now();
   while(true){
@@ -316,21 +320,32 @@ trainLoop(callback){
     let targetTime = time + it * this.options.refresh_batch * 1000;
 
     if(Date.now() >= targetTime - avgTime){
-      let batch = this.generateNextBatch(timeToTicks(this.options.batch_size));
-      callback(batch);
+      //let batch = this.generateNextChunk(timeToTicks(this.options.batch_size));
+      this.saveModel();
+      console.log('Request chunk...', 'iteration', this.tick_iter, 'epoch', (this.tick_iter/this.epoch_size).toFixed(2), 'perplexity', this.perplexity.toFixed(2));
+      callback({
+        //model: this.getModelJson(),
+        ticks: timeToTicks(this.options.batch_size),
+      });
+
+      /*
 
       console.log('chunkTime', batch.time, 'avgTime', avgTime.toFixed(2), 'targetMargin', targetTime - Date.now(), 'lastTime', Date.now() - lastTime, 'iteration', this.tick_iter);
 
       avgsTimes.push(batch.time);
 
-      if(avgsTimes.length >= 10){
+      if(avgsTimes.length >= 5){
         avgsTimes.splice(0, 1);
       }
 
       lastTime = Date.now();
       avgTime = Avg(avgsTimes);
+
+      */
       it++;
     }
+
+    console.log('tick', this.tick_iter);
     this.tick();
 
     if(this.tick_iter % 1000 === 0){
@@ -341,11 +356,30 @@ trainLoop(callback){
 
 train(callback){
   console.log('reading training data...');
-  fs.readFile(this.trainingDataPath, 'utf8', (err, content) => {
-    this.reInit(content);
-    this.loadModel(found => {
-      this.trainLoop(callback);
-    });
+
+  const reflect = promise => promise.then(
+    content => {return {content, resolved: true} },
+    error => { return {error, resolved: false} }
+  );
+
+  Promise.all([
+    fsp.readJson(this.modelPath),
+    fsp.readFile(this.trainingDataPath, {encoding:'utf8'})
+  ].map(reflect)).then(result => {
+    if(!result[1].resolved){
+      console.log('could not find training data!', );
+      return;
+    }
+
+    this.reInit(result[1].content);
+
+    if(result[0].resolved){
+      this.loadModel(result[0].content);
+    }else{
+      console.log('could not find model');
+    }
+
+    this.trainLoop(callback);
   });
 }
 
