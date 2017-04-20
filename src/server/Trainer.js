@@ -345,7 +345,7 @@ trainLoop(callback){
       it++;
     }
 
-    console.log('tick', this.tick_iter);
+    console.log('iteration', this.tick_iter);
     this.tick();
 
     if(this.tick_iter % 1000 === 0){

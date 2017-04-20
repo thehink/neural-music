@@ -5,6 +5,7 @@
   "scripts": {
     "start": "npm-run-all --parallel watch:* nodemon",
     "test": "tape ./tests/*.js | faucet",
+    "build": "npm-run-all --parallel build:*",
     "build:dist": "webpack --env=production --progress --colors",
     "build:serve": "webpack --config webpack.config.server.js",
     "nodemon": "nodemon",

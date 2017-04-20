@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import protobuf from 'protobufjs';
 import proto from '../shared/protos/notes.proto';
 import TextToTone from '../shared/utils/TextToTone';
@@ -25,11 +26,7 @@ export default class Server{
     this.prevNotes = [];
 
     // respond with "hello world" when a GET request is made to the homepage
-    this.app.get('/', function (req, res) {
-      res.json({
-
-      });
-    });
+    this.app.use(express.static('public'));
 
     this.app.get('/api/chunk', (req, res) => {
       res.set('Content-Type', 'application/protobuf');
