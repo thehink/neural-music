@@ -10,17 +10,19 @@ if (cluster.isMaster) {
   let server = new Server();
 
   let trainingCluster = cluster.fork();
-  let samplingCluster = cluster.fork();
+  //let samplingCluster = cluster.fork();
 
-  samplingCluster.on('message', server.onMessage);
+  //samplingCluster.on('message', server.onMessage);
 
   //send updated model to sampling process
-  trainingCluster.on('message', message => {
-    samplingCluster.send({
-      action: 'sample',
-      ...message
-    });
-  });
+  // trainingCluster.on('message', message => {
+  //   samplingCluster.send({
+  //     action: 'sample',
+  //     ...message
+  //   });
+  // });
+
+  trainingCluster.on('message', server.onMessage);
 
 
   trainingCluster.send({

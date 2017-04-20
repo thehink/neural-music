@@ -18,7 +18,7 @@ export default class Trainer{
   constructor(options){
     this.options = merge({
       generator: 'lstm',
-      hidden_sizes: [350, 350, 350],
+      hidden_sizes: [400, 400, 400],
       letter_size: 34,
       regc: 0.000001,
       learning_rate: 0.001,
@@ -53,6 +53,8 @@ export default class Trainer{
 
     this.batchId = 0;
     this.perplexity = 0;
+    this.cost = 0;
+    this.costs = [];
 
     this.prev = {};
     this.last_char = 0;
@@ -320,38 +322,38 @@ trainLoop(callback){
     let targetTime = time + it * this.options.refresh_batch * 1000;
 
     if(Date.now() >= targetTime - avgTime){
-      //let batch = this.generateNextChunk(timeToTicks(this.options.batch_size));
+      let chunk = this.generateNextChunk(timeToTicks(this.options.batch_size));
+      callback(chunk);
+
+      /*
       this.saveModel();
       console.log('Request chunk...', 'iteration', this.tick_iter, 'epoch', (this.tick_iter/this.epoch_size).toFixed(2), 'perplexity', this.perplexity.toFixed(2));
       callback({
-        //model: this.getModelJson(),
-        ticks: timeToTicks(this.options.batch_size),
-      });
+      //model: this.getModelJson(),
+      ticks: timeToTicks(this.options.batch_size),
+    });*/
 
-      /*
+    console.log('chunkTime', chunk.time, 'avgTime', avgTime.toFixed(2), 'targetMargin', targetTime - Date.now(), 'lastTime', Date.now() - lastTime, 'iteration', this.tick_iter);
 
-      console.log('chunkTime', batch.time, 'avgTime', avgTime.toFixed(2), 'targetMargin', targetTime - Date.now(), 'lastTime', Date.now() - lastTime, 'iteration', this.tick_iter);
+    avgsTimes.push(chunk.time);
 
-      avgsTimes.push(batch.time);
-
-      if(avgsTimes.length >= 5){
-        avgsTimes.splice(0, 1);
-      }
-
-      lastTime = Date.now();
-      avgTime = Avg(avgsTimes);
-
-      */
-      it++;
+    if(avgsTimes.length >= 5){
+      avgsTimes.splice(0, 1);
     }
 
-    console.log('iteration', this.tick_iter);
-    this.tick();
-
-    if(this.tick_iter % 1000 === 0){
-      this.saveModel();
-    }
+    lastTime = Date.now();
+    avgTime = Avg(avgsTimes);
+    it++;
   }
+
+  let datenow = Date.now();
+  this.tick();
+  console.log('iteration', this.tick_iter, 'time', Date.now() - datenow, 'ms', 'cost', this.cost.toFixed(2));
+
+  if(this.tick_iter % 1000 === 0){
+    this.saveModel();
+  }
+}
 }
 
 train(callback){
@@ -405,5 +407,13 @@ tick(){
   // evaluate now and then
   this.tick_iter += 1;
   this.perplexity = cost_struct.ppl;
+
+  this.costs.push(cost_struct.cost);
+
+  this.cost = Avg(this.costs);
+
+  if(this.costs.length >= 10){
+    this.costs.splice(0, 1);
+  }
 }
 }
