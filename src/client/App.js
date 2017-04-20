@@ -4,7 +4,8 @@ import settings from '../shared/settings';
 
 import StartAudioContext from 'startaudiocontext';
 
-import Player from './Player/';
+import Player from './Player';
+import Modal from './Modal';
 
 const Root = protobuf.parse(proto);
 const ResponseMessage = Root.root.lookupType("nm.Response");
@@ -18,8 +19,13 @@ export default class App{
 
     document.getElementById('logo').addEventListener('click', this.player.togglePause);
 
-    StartAudioContext(this.player.tone, '#logo', function(){
-    	console.log('AudioContext started');
+    this.modal = new Modal();
+
+    StartAudioContext(this.player.tone, '#play-button')
+    .then(() => {
+      console.log('AudioContext started');
+      this.modal.setLoading(true);
+      this.loadNextBatch();
     });
 
     this.perplexity = 0;
@@ -28,10 +34,6 @@ export default class App{
     this.nextChunkId = 0;
     this.fetching = false;
     this.lastFetch = 0;
-
-    this.loadNextBatch();
-    //setInterval(this.loadNextBatch.bind(this), (settings.refresh_time) * 1000);
-    //document.getElementById('logo').addEventListener('touchend', this.player.togglePause);
   }
 
   onPlayback(currentTime, totalTime){
@@ -41,7 +43,6 @@ export default class App{
   }
 
   loadNextBatch(){
-
     if(this.fetching || Date.now() - this.lastFetch < 2 * 1000){
       return;
     }
@@ -73,6 +74,14 @@ export default class App{
       this.nextChunkId = this.chunkId + 1;
       this.fetching = false;
 
+      if(!this.player.isPlaying){
+        this.player.play();
+      }
+
+      if(!this.modal.isHidden){
+        this.modal.hide();
+      }
+
     }).catch(err => {
       // Error :(
       console.log(err);
@@ -81,5 +90,6 @@ export default class App{
 
   dispose(){
     this.player.dispose();
+    this.modal.dispose();
   }
 }

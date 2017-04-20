@@ -1,7 +1,6 @@
 import 'normalize.css';
 import './styles/header.scss';
 import './styles/main.scss';
-import './styles/note.scss';
 
 import App from './App';
 

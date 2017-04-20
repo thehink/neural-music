@@ -57,6 +57,10 @@ export default class Player extends EventEmitter{
     this.update();
   }
 
+  get isPlaying(){
+    return Tone.Transport.state === 'started';
+  }
+
   resize(){
     this.canvasWidth = this.canvas.offsetWidth;
 		this.canvasHeight = this.canvas.offsetHeight;
