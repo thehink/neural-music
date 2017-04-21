@@ -38,8 +38,8 @@ export default class Trainer{
       text: ''
     };
 
-    this.trainingDataPath = './training_data/mario.mid.txt';
-    this.modelPath = './weights/model.json';
+    this.trainingDataPath = './training_data/midi_8.txt';
+    this.modelPath = './weights/midi_8_model.json';
 
     this.tick_iter = 0;
     this.epoch_size = -1;
