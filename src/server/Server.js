@@ -8,6 +8,8 @@ const Root = protobuf.parse(proto);
 const ResponseMessage = Root.root.lookupType("nm.Response");
 const SampleMessage = Root.root.lookupType("nm.Sample");
 
+const PORT = process.env.PORT || 4000;
+
 export default class Server{
   constructor(){
     this.app = express();
@@ -35,8 +37,8 @@ export default class Server{
       res.end(responseBuffer);
     });
 
-    this.app.listen(4000, function () {
-      console.log('Web server listening on port 4000');
+    this.app.listen(PORT, function () {
+      console.log(`Web server listening on port ${PORT}`);
     });
   }
 
