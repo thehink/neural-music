@@ -18,7 +18,7 @@ export default class Trainer{
   constructor(options){
     this.options = merge({
       generator: 'lstm',
-      hidden_sizes: [400, 400, 400],
+      hidden_sizes: [412, 412, 412],
       letter_size: 34,
       regc: 0.000001,
       learning_rate: 0.001,
@@ -348,7 +348,7 @@ trainLoop(callback){
 
   let datenow = Date.now();
   this.tick();
-  console.log('iteration', this.tick_iter, 'time', Date.now() - datenow, 'ms', 'cost', this.cost.toFixed(2));
+  //console.log('iteration', this.tick_iter, 'time', Date.now() - datenow, 'ms', 'cost', this.cost.toFixed(2));
 
   if(this.tick_iter % 1000 === 0){
     this.saveModel();
@@ -363,6 +363,10 @@ train(callback){
     content => {return {content, resolved: true} },
     error => { return {error, resolved: false} }
   );
+
+  //let content = fs.readFileSync(this.trainingDataPath, 'utf8');
+  //this.reInit(content);
+  //this.trainLoop(callback);
 
   Promise.all([
     fsp.readJson(this.modelPath),
@@ -390,19 +394,24 @@ tick(){
   var sentix = R.randi(0, this.data_sents.length);
   var sent = this.data_sents[this.tick_iter % this.data_sents.length];
 
-  var t0 = +new Date();  // log start timestamp
-
+  var t2 = Date.now();  // log start timestamp
   // evaluate cost function on a sentence
   var cost_struct = this.costFun(this.model, sent);
+  var t2c = Date.now() - t2;
 
+
+  var t3 = Date.now();  // log start timestamp
   // use built up graph to compute backprop (set .dw fields in mats)
   cost_struct.G.backward();
+  var t3c = Date.now() - t3;
+
+  var t0 = +new Date();  // log start timestamp
   // perform param update
   var solver_stats = this.solver.step(this.model, this.options.learning_rate, this.options.regc, this.options.clipval);
-  //$("#gradclip").text('grad clipped ratio: ' + solver_stats.ratio_clipped)
 
   var t1 = +new Date();
   var tick_time = t1 - t0;
+  console.log('step', tick_time, 'ms', 'cost', t2c, 'backprop', t3c);
 
   // evaluate now and then
   this.tick_iter += 1;

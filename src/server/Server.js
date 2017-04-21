@@ -50,7 +50,13 @@ export default class Server{
     }
 
     if(!chunk){
-      return this.buildResponseBuffer(null, 1, 'could not fetch chunk!');
+      let message = 'could not fetch chunk!';
+
+      if(this.chunks.length < 3){
+        message = 'Initializing chunks, please wait a moment...';
+      }
+
+      return this.buildResponseBuffer(null, 1, message);
     }
 
     return chunk.buffer;

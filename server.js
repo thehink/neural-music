@@ -16,7 +16,7 @@ browserSync({
       }
     },
     server: {
-        baseDir: 'public',
+        baseDir: 'src/client',
         middleware: [
             webpackDevMiddleware(bundler, {
                 publicPath: webpackConfig.output.publicPath,
@@ -41,6 +41,6 @@ browserSync({
         ],
     },
     files: [
-      'public/*.html'
+      'src/client/*.html'
     ]
 });
