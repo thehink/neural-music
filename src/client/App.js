@@ -24,6 +24,7 @@ export default class App{
     StartAudioContext(this.player.tone, '#play-button')
     .then(() => {
       console.log('AudioContext started');
+      this.modal.setText('Loading chunk...');
       this.modal.setLoading(true);
       this.loadNextBatch();
     });
@@ -55,9 +56,13 @@ export default class App{
     }).then(response => {
       return response.arrayBuffer();
     }).then(buf => {
+      this.fetching = false;
+
       var message = ResponseMessage.decode(new Uint8Array(buf));
 
       if(message.status === 1){
+        this.modal.setText(message.message);
+        setTimeout(this.loadNextBatch.bind(this), 4000);
         console.log('error', message.message);
         return;
       }
@@ -72,7 +77,6 @@ export default class App{
       }
 
       this.nextChunkId = this.chunkId + 1;
-      this.fetching = false;
 
       if(!this.player.isPlaying){
         this.player.play();

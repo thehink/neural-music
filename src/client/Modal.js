@@ -10,6 +10,8 @@ export default class Modal{
     this.isShowing = true;
     this.loading = false;
 
+    this.text = '';
+
     document.body.appendChild(this.el);
     this.buildElement();
   }
@@ -19,8 +21,9 @@ export default class Modal{
     this.buildElement();
   }
 
-  setText(){
-
+  setText(text){
+    this.text = text;
+    this.buildElement();
   }
 
   show(){
@@ -51,6 +54,12 @@ export default class Modal{
 
       playWrapperEl.appendChild(playEl);
     }
+
+    let textEl = document.createElement('p');
+    textEl.className = 'text';
+    textEl.innerText = this.text;
+
+    playWrapperEl.appendChild(textEl);
 
     this.el.appendChild(playWrapperEl);
   }
