@@ -86,6 +86,10 @@ export default class Server{
   }
 
   onMessage(batch){
+    if(!batch.text){
+  		return;
+  	}
+
     let notes = TextToTone(batch.text);
 
     this.currentId = batch.id;
