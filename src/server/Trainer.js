@@ -386,6 +386,8 @@ train(callback){
     }
 
     this.trainLoop(callback);
+  }).catch(err => {
+    console.log(err);
   });
 }
 
