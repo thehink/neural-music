@@ -315,6 +315,10 @@ async trainLoop(callback){
   let avgTime = 2000;
   let avgsTimes = [];
   let lastTime = Date.now();
+
+  //max delay (ms) on chunks before skipping
+  let targetMarginThreshold = 120 * 1000;
+
   while(true){
     let delta = Date.now() - time;
     passedTime += delta;
@@ -333,7 +337,9 @@ async trainLoop(callback){
       ticks: timeToTicks(this.options.batch_size),
     });*/
 
-    console.log('chunkTime', chunk.time, 'avgTime', avgTime.toFixed(2), 'targetMargin', targetTime - Date.now(), 'lastTime', Date.now() - lastTime, 'iteration', this.tick_iter);
+    let targetMargin = targetTime - Date.now();
+
+    console.log('chunkTime', chunk.time, 'avgTime', avgTime.toFixed(2), 'targetMargin', targetMargin, 'lastTime', Date.now() - lastTime, 'iteration', this.tick_iter);
 
     avgsTimes.push(chunk.time);
 
@@ -343,6 +349,12 @@ async trainLoop(callback){
 
     lastTime = Date.now();
     avgTime = Avg(avgsTimes);
+
+    //skip chunks if we lag behind threshold
+    if(targetMargin < -targetMarginThreshold){
+      it -= targetMargin / (this.options.refresh_batch * 1000);
+    }
+
     it++;
   }
 
