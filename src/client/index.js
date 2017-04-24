@@ -1,3 +1,6 @@
+require("babel-core/register");
+require("babel-polyfill");
+
 import 'normalize.css';
 import './styles/header.scss';
 import './styles/main.scss';

@@ -21,29 +21,69 @@ export default class App{
 
     this.modal = new Modal();
 
-    StartAudioContext(this.player.tone, '#play-button')
-    .then(() => {
-      console.log('AudioContext started');
-      this.modal.setText('Loading chunk...');
-      this.modal.setLoading(true);
-      this.loadNextBatch();
-    });
-
     this.perplexity = 0;
     this.epoch = 0;
     this.chunkId;
     this.nextChunkId = 0;
     this.fetching = false;
     this.lastFetch = 0;
+
+    this.checkAudioContext();
   }
 
-  onPlayback(currentTime, totalTime){
-    if(totalTime - currentTime < 6){
+  async checkAudioContext(){
+    await StartAudioContext(this.player.tone, '#play-button');
+
+    console.log('AudioContext started');
+    this.modal.setText('Loading chunk...');
+    this.modal.setLoading(true);
+    this.loadNextBatch();
+  }
+
+  async onPlayback(currentTime, totalTime){
+
+    //load new chunk when 10 seconds left
+    if(totalTime - currentTime < 10){
       this.loadNextBatch();
     }
   }
 
-  loadNextBatch(){
+  async handleMessage(response){
+
+    const {
+      status,
+      message,
+      sample
+    } = response;
+
+    if(status === 1){
+      this.modal.setText(message);
+      setTimeout(this.loadNextBatch.bind(this), 4000);
+      console.log('error', message);
+      return;
+    }
+
+    let chunk = sample;
+
+    if(chunk.id !== this.chunkId){
+      this.chunkId = chunk.id;
+      this.player.addBatch(chunk);
+    }else{
+      console.log('discarding chunk:', chunk.id);
+    }
+
+    this.nextChunkId = this.chunkId + 1;
+
+    if(!this.player.isPlaying){
+      this.player.play();
+    }
+
+    if(!this.modal.isHidden){
+      this.modal.hide();
+    }
+  }
+
+  async loadNextBatch(){
     if(this.fetching || Date.now() - this.lastFetch < 2 * 1000){
       return;
     }
@@ -51,45 +91,23 @@ export default class App{
     this.fetching = true;
     this.lastFetch  = Date.now();
 
-    fetch(`/api/chunk?chunk=${this.nextChunkId || ''}`, {
+    let response = await fetch(`/api/chunk?chunk=${this.nextChunkId || ''}`, {
       method: 'get'
-    }).then(response => {
-      return response.arrayBuffer();
-    }).then(buf => {
-      this.fetching = false;
-
-      var message = ResponseMessage.decode(new Uint8Array(buf));
-
-      if(message.status === 1){
-        this.modal.setText(message.message);
-        setTimeout(this.loadNextBatch.bind(this), 4000);
-        console.log('error', message.message);
-        return;
-      }
-
-      let chunk = message.sample;
-
-      if(chunk.id !== this.chunkId){
-        this.chunkId = chunk.id;
-        this.player.addBatch(chunk);
-      }else{
-        console.log('discarding chunk:', chunk.id);
-      }
-
-      this.nextChunkId = this.chunkId + 1;
-
-      if(!this.player.isPlaying){
-        this.player.play();
-      }
-
-      if(!this.modal.isHidden){
-        this.modal.hide();
-      }
-
-    }).catch(err => {
-      // Error :(
-      console.log(err);
     });
+
+    let responseBuffer = await response.arrayBuffer();
+
+    this.fetching = false;
+
+    if(response.status !== 200){
+      this.modal.setText(`${response.status} ${response.statusText}, retrying...`);
+      console.log('error', 'status', response.status, response.statusText);
+      return;
+    }
+
+    let message = ResponseMessage.decode(new Uint8Array(responseBuffer));
+
+    this.handleMessage(message);
   }
 
   dispose(){
