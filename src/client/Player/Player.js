@@ -180,8 +180,8 @@ export default class Player extends EventEmitter{
     this.context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
 
     this.context.fillStyle = "black";
-    this.context.font = '40px serif';
-    this.context.fillText(`FPS: ${this.avgFps}`, 10, 50);
+    this.context.font = '20px serif';
+    this.context.fillText(`FPS: ${this.avgFps}`, 10, 25);
 
     //draw notes
     this.drawNotes();

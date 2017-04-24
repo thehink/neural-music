@@ -17,8 +17,6 @@ export default class App{
 
     this.player.on('playback', this.onPlayback.bind(this));
 
-    document.getElementById('logo').addEventListener('click', this.player.togglePause);
-
     this.modal = new Modal();
 
     this.perplexity = 0;
@@ -28,16 +26,33 @@ export default class App{
     this.fetching = false;
     this.lastFetch = 0;
 
+    document.getElementById('play-button').addEventListener('click', this.onPlayClick.bind(this));
+    this.clickedPlay = false;
+
+    //document.getElementById('logo').addEventListener('click', this.player.togglePause);
+
+    document.getElementById('canvas').addEventListener('click', this.player.togglePause);
+
     this.checkAudioContext();
+  }
+
+  onPlayClick(){
+    this.clickedPlay = true;
+    this.checkStartRequirements();
   }
 
   async checkAudioContext(){
     await StartAudioContext(this.player.tone, '#play-button');
-
     console.log('AudioContext started');
-    this.modal.setText('Loading chunk...');
-    this.modal.setLoading(true);
-    this.loadNextBatch();
+    this.checkStartRequirements();
+  }
+
+  async checkStartRequirements(){
+    if(this.clickedPlay){
+      this.modal.setText('Loading chunk...');
+      this.modal.setLoading(true);
+      this.loadNextBatch();
+    }
   }
 
   async onPlayback(currentTime, totalTime){
@@ -56,7 +71,7 @@ export default class App{
       sample
     } = response;
 
-    if(status === 1){
+    if(status !== Root.root.lookupEnum("nm.Response.Status").values.SUCCESS){
       this.modal.setText(message);
       setTimeout(this.loadNextBatch.bind(this), 4000);
       console.log('error', message);

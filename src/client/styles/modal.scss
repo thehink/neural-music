@@ -24,6 +24,8 @@
 
 	-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 
+	cursor: pointer;
+
 	.text{
 		position: absolute;
 		color: #CCC;
@@ -46,7 +48,8 @@
 		border-left: $height solid #00314f;
 	}
 
-	&:active .play-button{
+	&:active .play-button,
+	&:hover .play-button{
 		border-left: $height solid #009ffc;
 	}
 

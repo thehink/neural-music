@@ -17,7 +17,7 @@ export default class Separator extends Block{
   draw(context){
     super.draw(context);
 
-    context.fillStyle = "black";
+    context.fillStyle = "#0075bc";
     context.font = '15px monospace';
     context.fillText(`Chunk ${this.id}`, this.offsetLeft-45, 35);
     context.fillText(`Epoch ${this.epoch.toFixed(4)}`, this.offsetLeft-45, 50);
