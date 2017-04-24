@@ -1,14 +1,22 @@
 {
   "presets": [
-    ["es2015", { "modules": false }],
+    ["env", {
+      "targets": {
+        "ie": 9,
+        "uglify": true,
+      },
+      "modules": false,
+      "loose": true
+    }],
     "stage-1"
+  ],
+  "plugins": [
+    "transform-class-properties",
+    "transform-object-rest-spread"
   ],
   "env": {
     "development": {
-      "plugins": [
-      ]
-    },
-    "production": {
+      "plugins": []
     }
   }
 }

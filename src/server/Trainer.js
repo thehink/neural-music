@@ -148,7 +148,7 @@ export default class Trainer{
   this.model = this.initModel();
 }
 
-saveModel(){
+async saveModel(){
   let modelData = this.getModelJson();
   fs.writeFileSync(this.modelPath, JSON.stringify(modelData), 'utf-8');
   console.log("weights saved!", this.modelPath);
@@ -272,7 +272,7 @@ median(values){
   else return (values[half-1] + values[half]) / 2.0;
 }
 
-generateChunkFromModel(ticks){
+async generateChunkFromModel(ticks){
   return fsp.readJson(this.modelPath)
   .then(model => {
     this.loadModel(model);
@@ -282,7 +282,7 @@ generateChunkFromModel(ticks){
   });
 }
 
-generateNextChunk(ticks){
+async generateNextChunk(ticks){
   let numTicks = 0;
   let text = '';
   console.log('generating chunk...');
@@ -307,7 +307,7 @@ generateNextChunk(ticks){
   };
 }
 
-trainLoop(callback){
+async trainLoop(callback){
   let it = 1;
   let time = Date.now();
   let passedTime = 0;
@@ -322,7 +322,7 @@ trainLoop(callback){
     let targetTime = time + it * this.options.refresh_batch * 1000;
 
     if(Date.now() >= targetTime - avgTime){
-      let chunk = this.generateNextChunk(timeToTicks(this.options.batch_size));
+      let chunk = await this.generateNextChunk(timeToTicks(this.options.batch_size));
       callback(chunk);
 
       /*
@@ -356,7 +356,7 @@ trainLoop(callback){
 }
 }
 
-train(callback){
+async train(callback){
   console.log('reading training data...');
 
   const reflect = promise => promise.then(
@@ -364,31 +364,23 @@ train(callback){
     error => { return {error, resolved: false} }
   );
 
-  //let content = fs.readFileSync(this.trainingDataPath, 'utf8');
-  //this.reInit(content);
-  //this.trainLoop(callback);
+  let model = await reflect(fsp.readJson(this.modelPath));
+  let trainingData = await reflect(fsp.readFile(this.trainingDataPath, {encoding:'utf8'}));
 
-  Promise.all([
-    fsp.readJson(this.modelPath),
-    fsp.readFile(this.trainingDataPath, {encoding:'utf8'})
-  ].map(reflect)).then(result => {
-    if(!result[1].resolved){
-      console.log('could not find training data!', );
-      return;
-    }
+  if(!trainingData.resolved){
+    console.log('could not find training data!', );
+    return;
+  }
 
-    this.reInit(result[1].content);
+  this.reInit(trainingData.content);
 
-    if(result[0].resolved){
-      this.loadModel(result[0].content);
-    }else{
-      console.log('could not find model');
-    }
+  if(!model.resolved){
+    console.log('could not find model');
+  }else{
+    this.loadModel(model.content);
+  }
 
-    this.trainLoop(callback);
-  }).catch(err => {
-    console.log(err);
-  });
+  this.trainLoop(callback);
 }
 
 tick(){
@@ -413,7 +405,7 @@ tick(){
 
   var t1 = +new Date();
   var tick_time = t1 - t0;
-  console.log('step', tick_time, 'ms', 'cost', t2c, 'backprop', t3c);
+  console.log('step', tick_time, 'ms', 'cost', t2c, 'backprop', t3c, 'total', Date.now() - t2);
 
   // evaluate now and then
   this.tick_iter += 1;

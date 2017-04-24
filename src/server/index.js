@@ -1,3 +1,6 @@
+require("babel-core/register");
+require("babel-polyfill");
+
 import cluster from 'cluster';
 import fs from 'fs';
 

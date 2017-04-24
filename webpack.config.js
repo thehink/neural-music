@@ -34,7 +34,7 @@ const config = {
   devtool: 'source-map',
   context: sourcePath,
   entry: {
-    app: './index.js',
+    app: ['./index.js'],
     vendor: ['whatwg-fetch', 'tone', 'protobufjs', 'lodash']
   },
   output: {
