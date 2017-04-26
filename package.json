@@ -7,7 +7,7 @@
     "test": "tape ./tests/*.js | faucet",
     "build": "npm-run-all --parallel build:*",
     "build:dist": "webpack --env=production --progress --colors",
-    "build:serve": "webpack --config webpack.config.server.js",
+    "build:serve": "webpack --env=production --config webpack.config.server.js",
     "nodemon": "nodemon --inspect",
     "watch:dist": "node server.js --env=development --progress --colors --inline",
     "watch:serve": "webpack --config webpack.config.server.js --watch"

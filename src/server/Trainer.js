@@ -359,11 +359,11 @@ async trainLoop(callback){
   }
 
   let datenow = Date.now();
-  this.tick();
+  await this.tick();
   //console.log('iteration', this.tick_iter, 'time', Date.now() - datenow, 'ms', 'cost', this.cost.toFixed(2));
 
   if(this.tick_iter % 1000 === 0){
-    this.saveModel();
+    await this.saveModel();
   }
 }
 }
@@ -395,7 +395,7 @@ async train(callback){
   this.trainLoop(callback);
 }
 
-tick(){
+async tick(){
   // sample sentence fromd data
   var sentix = R.randi(0, this.data_sents.length);
   var sent = this.data_sents[this.tick_iter % this.data_sents.length];
